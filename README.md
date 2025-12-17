@@ -28,8 +28,3 @@ vision.yaml for jetpack 6.2 machine
     
     #Run on the actual robot
     ./scripts/start.sh
-
-## Documents
-
-[Chinese Version](https://booster.feishu.cn/wiki/SoJCwyIpiiXrp0kgVnKc5rIrn3f)
-[English version](https://booster.feishu.cn/wiki/CQXowElA0iy2hhkmPJmcY0wwnHf?renamingWikiNode=false)
