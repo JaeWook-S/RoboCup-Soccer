@@ -1,6 +1,6 @@
 <root BTCPP_format="4">
     <!-- 포함될 BT 파일들 -->
-    <include path="./dribble.xml" />
+    <!--<include path="./dribble.xml" />-->
 
     <!-- 시작 -->
     <BehaviorTree ID="MainTree">
@@ -35,6 +35,8 @@
                         </ReactiveSequence>
 
                         <ReactiveSequence _while="gc_game_state=='PLAY'" name="Play">
+                            <!--<SubTree ID="dribble" _autoremap="true" /> 드리블을 위해 적용 -->
+                            <SetVelocity x="0.0" y="0.0" theta="0.0" />
                         </ReactiveSequence>
 
                         <ReactiveSequence _while="gc_game_state=='END'" name="End">

@@ -12,8 +12,8 @@
         [brain](const string &name, const NodeConfig &config) { return make_unique<Name>(name, config, brain); });
 
 
-void RegisterWalkNodes(BT::BehaviorTreeFactory &factory, Brain* brain){
-    REGISTER_MOVEHEAD_BUILDER(SetVelocity) // 속도 제어
+void RegisterMoveHeadNodes(BT::BehaviorTreeFactory &factory, Brain* brain){
+    REGISTER_MOVEHEAD_BUILDER(MoveHead) // 속도 제어
     
 }
 

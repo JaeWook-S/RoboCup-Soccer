@@ -9,13 +9,7 @@
 #include <fstream>
 #include <ios>
 
-/**
- * 这里使用宏定义来缩减 RegisterBuilder 的代码量
- * REGISTER_BUILDER(Test) 展开后的效果是
- * factory.registerBuilder<Test>(  \
- *      "Test",                    \
- *     [this](const string& name, const NodeConfig& config) { return make_unique<Test>(name, config, brain); });
- */
+
 #define REGISTER_BUILDER(Name)     \
     factory.registerBuilder<Name>( \
         #Name,                     \
@@ -25,10 +19,8 @@ void BrainTree::init()
 {
     BehaviorTreeFactory factory;
 
-    REGISTER_BUILDER(MoveHead)
-
     brain->registerWalkNodes(factory); // walk 관련 노드 등록
-    brain->registerMoveHeadNodes(factory); // walk 관련 노드 등록
+    brain->registerMoveHeadNodes(factory); // head move 관련 노드 등록
 
     factory.registerBehaviorTreeFromFile(brain->config->treeFilePath);
     tree = factory.createTree("MainTree");
@@ -54,14 +46,3 @@ void BrainTree::tick()
 {
     tree.tickOnce();
 }
-
-
-NodeStatus MoveHead::tick()
-{
-    double pitch, yaw;
-    getInput("pitch", pitch);
-    getInput("yaw", yaw);
-    brain->client->moveHead(pitch, yaw);
-    return NodeStatus::SUCCESS;
-}
-
