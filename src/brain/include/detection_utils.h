@@ -29,7 +29,7 @@ void updateBallOut(const std::shared_ptr<BrainConfig> &config, const std::shared
 /* ----------------------------- Line 전처리 ----------------------------- */
 // 필드 라인 필터링 함수
 void updateLinePosToField(FieldLine& line, const std::shared_ptr<BrainData> &data);
-vector<FieldLine> processFieldLines(vector<FieldLine>& fieldLines, const std::shared_ptr<BrainConfig> &config, const std::shared_ptr<BrainData> &data, const std::shared_ptr<BrainTree> &tree)
+vector<FieldLine> processFieldLines(vector<FieldLine>& fieldLines, const std::shared_ptr<BrainConfig> &config, const std::shared_ptr<BrainData> &data, const std::shared_ptr<BrainTree> &tree);
 void identifyFieldLine(FieldLine& line, const std::shared_ptr<BrainConfig> &config, const std::shared_ptr<BrainData> &data, const std::shared_ptr<BrainTree> &tree);
 // 마킹 개수 계산
 int markCntOnFieldLine(const string markType, const FieldLine line, const double margin, const std::shared_ptr<BrainData> &data);
@@ -37,4 +37,5 @@ int markCntOnFieldLine(const string markType, const FieldLine line, const double
 int goalpostCntOnFieldLine(const FieldLine line, const double margin, const std::shared_ptr<BrainData> &data);
 // 공이 특정 라인 위에 있는지 판단
 bool isBallOnFieldLine(const FieldLine line, const double margin, const std::shared_ptr<BrainData> &data);
+
 }

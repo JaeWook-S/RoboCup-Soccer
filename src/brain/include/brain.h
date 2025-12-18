@@ -38,6 +38,8 @@
 #include "brain_config.h"
 #include "walk.h"
 #include "movehead.h"
+#include "locator.h"
+#include "brain_log.h"
 
 
 using namespace std;
@@ -50,6 +52,8 @@ public:
     std::shared_ptr<BrainTree> tree;
     std::shared_ptr<BrainConfig> config;
     std::shared_ptr<BrainData> data;
+    std::shared_ptr<Locator> locator;
+    std::shared_ptr<BrainLog> log;
     
     Brain();
     ~Brain();
@@ -58,7 +62,11 @@ public:
     double msecsSince(rclcpp::Time time); // 특정 시간(timestamp) 이후 몇 밀리초가 지났는지 계산하는 유틸리티 함수
 
     void calibrateOdom(double x, double y, double theta);
-    bool isBoundingBoxInCenter(BoundingBox boundingBox, double xRatio, double yRatio);
+    void updateFieldPos(GameObject& obj);
+    void logDetection(const vector<GameObject>& objects);
+    
+    bool isBoundingBoxInCenter(BoundingBox boundingBox, double xRatio = 0.5, double yRatio = 0.5);
+
 
     // 행동 노드들 등록
     void registerWalkNodes(BT::BehaviorTreeFactory &factory){RegisterWalkNodes(factory, this);}
@@ -67,7 +75,7 @@ public:
     
     // ROS callback 함수
     void gameControlCallback(const game_controller_interface::msg::GameControlData &msg);
-    void detectionsCallback(const vision_interface::msg::Detections::SharedPtr msg);
+    void detectionsCallback(const vision_interface::msg::Detections &msg);
     void fieldLineCallback(const vision_interface::msg::LineSegments &msg);
     void odometerCallback(const booster_interface::msg::Odometer &msg);
 

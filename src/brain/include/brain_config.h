@@ -68,7 +68,14 @@ public:
     double ballOutThreshold = 2.0; // 공이 밖으로 나갔는지 판단을 위한 임계값
 
 
+    // --------- rerun 로그 관련 파라미터 ----------------
+    bool rerunLogEnableTCP;    
+    string rerunLogServerIP;    
+    bool rerunLogEnableFile;    
+    string rerunLogLogDir;     
+    double rerunLogMaxFileMins;         
 
+    int rerunLogImgInterval;   
 
     // ---------------- 멤버 함수 ----------------
     void handle();
