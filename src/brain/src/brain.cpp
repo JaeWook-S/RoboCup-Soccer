@@ -115,8 +115,7 @@ void Brain::init(){
 
 }
 
-void Brain::tick(){ tree->tick(); }
-
+// config 로드
 void Brain::loadConfig(){
     get_parameter("game.team_id", config->teamId);
     get_parameter("game.player_id", config->playerId);
@@ -204,6 +203,8 @@ void Brain::loadConfig(){
     config->print(oss);
     prtDebug(oss.str());
 }
+
+void Brain::tick(){ tree->tick(); }
 
 
 /* ----------------------------- time 관련 함수 유틸 -------------------------------*/
@@ -495,8 +496,7 @@ void Brain::headPoseCallback(const geometry_msgs::msg::Pose& msg){
     data->camToRobot = headToBase * config->camToHead;
 }
 
-void Brain::recoveryStateCallback(const booster_interface::msg::RawBytesMsg &msg)
-{
+void Brain::recoveryStateCallback(const booster_interface::msg::RawBytesMsg &msg){
     // uint8_t state; // IS_READY = 0, IS_FALLING = 1, HAS_FALLEN = 2, IS_GETTING_UP = 3,  
     // uint8_t is_recovery_available; // 1 for available, 0 for not available
     // 使用 RobotRecoveryState 结构，将msg里面的msg转换为RobotRecoveryState
@@ -507,18 +507,14 @@ void Brain::recoveryStateCallback(const booster_interface::msg::RawBytesMsg &msg
         memcpy(&recoveryState, buffer.data(), buffer.size());
 
         vector<RobotRecoveryState> recoveryStateMap = {
-            RobotRecoveryState::IS_READY,
-            RobotRecoveryState::IS_FALLING,
-            RobotRecoveryState::HAS_FALLEN,
-            RobotRecoveryState::IS_GETTING_UP
+            RobotRecoveryState::IS_READY, // 정상
+            RobotRecoveryState::IS_FALLING, // 넘어지는 중 
+            RobotRecoveryState::HAS_FALLEN, // 완전히 넘어짐
+            RobotRecoveryState::IS_GETTING_UP // 일어나는 중
         };
         this->data->recoveryState = recoveryStateMap[static_cast<int>(recoveryState.state)];
         this->data->isRecoveryAvailable = static_cast<bool>(recoveryState.is_recovery_available);
         this->data->currentRobotModeIndex = static_cast<int>(recoveryState.current_planner_index);
-        
-        // cout << "recoveryState: " << static_cast<int>(recoveryState.state) << endl;
-        // cout << "recovery is available: " << static_cast<int>(recoveryState.is_recovery_available) << endl;
-        // cout << "current planner idx: " << static_cast<int>(recoveryState.current_planner_index) << endl;
     }
     catch(const std::exception& e)
     {
@@ -573,11 +569,10 @@ void Brain::imageCallback(const sensor_msgs::msg::Image &msg){ // rerun 시각�
         cv::imencode(".jpg", image, compressed_image, compression_params);
 
 
-        log->setTimeSeconds(timePointFromHeader(msg.header).seconds());
+        log->setTimeSeconds(detection_utils::timePointFromHeader(msg.header).seconds());
         log->log("image/img", rerun::EncodedImage::from_bytes(compressed_image));
     }
 }
-
 
 
 /* ------------------------- 나중에 따로 뺄 거임 ----------------------------------*/
