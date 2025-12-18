@@ -37,5 +37,9 @@ int markCntOnFieldLine(const string markType, const FieldLine line, const std::s
 int goalpostCntOnFieldLine(const FieldLine line, const std::shared_ptr<BrainData> &data, const double margin=0.2);
 // 공이 특정 라인 위에 있는지 판단
 bool isBallOnFieldLine(const FieldLine line, const std::shared_ptr<BrainData> &data, const double margin=0.3);
+void detectProcessMarkings(const vector<GameObject> &markingObjs, const std::shared_ptr<BrainData> &data, const std::shared_ptr<BrainLog> &log);
+void detectProcessGoalposts(const vector<GameObject> &goalpostObjs, const std::shared_ptr<BrainData> &data, const std::shared_ptr<BrainLog> &log);
+void detectProcessVisionBox(const vision_interface::msg::Detections &msg, const std::shared_ptr<BrainData> &data);
+void detectProcessRobots(const vector<GameObject> &robotObjs, const std::shared_ptr<BrainData> &data);
 
 }

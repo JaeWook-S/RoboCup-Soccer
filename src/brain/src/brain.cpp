@@ -374,12 +374,12 @@ void Brain::detectionsCallback(const vision_interface::msg::Detections &msg){
 
     // 객체 데이터들 전처리
     detection_utils::detectProcessBalls(balls, config, data, tree);
-    // detectProcessGoalposts(goalposts);
-    // detectProcessMarkings(markings);
-    // detectProcessRobots(robots);
+    detection_utils::detectProcessGoalposts(goalposts, data, log);
+    detection_utils::detectProcessMarkings(markings, data, log);
+    detection_utils::detectProcessRobots(robots, data);
 
     // 处理并记录视野信息
-    // detectProcessVisionBox(msg);
+    detection_utils::detectProcessVisionBox(msg, data);
 
     // 로그 기록
     logDetection(gameObjects);

@@ -47,7 +47,7 @@ struct BrainData {
     bool ballDetected = false; // 공 감지 플래그
     double robotBallAngleToField;
 
-    VisionBox visionBox;  
+    VisionBox visionBox; 
     
     // --------------------------- 로봇 위치 관련 변수 ---------------------------
     Pose2D robotPoseToField;

@@ -341,4 +341,137 @@ bool isBallOnFieldLine(const FieldLine line, const std::shared_ptr<BrainData> &d
     return fabs(pointPerpDistToLine(point, line.posToField)) < margin; // 수직 거리가 margin보다 작으면 true
 }
 
+void detectProcessMarkings(const vector<GameObject> &markingObjs, const std::shared_ptr<BrainData> &data, const std::shared_ptr<BrainLog> &log){
+    const double confidenceValve = 50; // confidence 低于这个阈值, 排除
+    vector<GameObject> markings = {};
+    for (int i = 0; i < markingObjs.size(); i++)
+    {
+        auto marking = markingObjs[i];
+
+        // 判断: 如果置信度太低, 则认为是误检
+        if (marking.confidence < confidenceValve)
+            continue;
+
+        // 排除天的上误识别标记
+        if (marking.posToRobot.x < -0.5 || marking.posToRobot.x > 15.0)
+            continue;
+
+        // 如果通过了重重考验, 则记入 brain
+        identifyMarking(marking);
+        markings.push_back(marking);
+    }
+    data->setMarkings(markings);
+
+    // log identified markings
+    log->setTimeNow();
+    vector<rerun::LineStrip2D> circles = {};
+    vector<string> labels = {};
+
+    for (int i = 0; i < markings.size(); i++) {
+        auto m = markings[i];
+        if (markings[i].id >= 0) {
+            circles.push_back(log->circle(m.posToField.x, -m.posToField.y, 0.3));
+            labels.push_back(format("%s c=%.2f", m.name.c_str(), m.idConfidence));
+        }
+    }
+    
+    log->log("field/identified_markings",
+        rerun::LineStrips2D(rerun::Collection<rerun::components::LineStrip2D>(circles))
+       .with_radii(0.01)
+       .with_labels(labels)
+       .with_colors(0xFFFFFFFF));
+}
+void detectProcessGoalposts(const vector<GameObject> &goalpostObjs, const std::shared_ptr<BrainData> &data, const std::shared_ptr<BrainLog> &log){
+    const double confidenceValve = 50; // confidence 低于这个阈值, 排除
+    vector<GameObject> goalposts = {};
+
+    for (int i = 0; i < goalpostObjs.size(); i++) {
+        auto goalpost = goalpostObjs[i];
+
+        // 判断: 如果置信度太低, 则认为是误检
+        if (goalpost.confidence < confidenceValve)
+            continue;
+
+        identifyGoalpost(goalpost);
+        goalposts.push_back(goalpost);
+    }
+    data->setGoalposts(goalposts);
+
+    // log identified goalposts
+    log->setTimeNow();
+    vector<rerun::LineStrip2D> circles = {};
+    vector<string> labels = {};
+
+    for (int i = 0; i < goalposts.size(); i++) {
+        auto p = goalposts[i];
+        if (goalposts[i].id >= 0) {
+            circles.push_back(log->circle(p.posToField.x, -p.posToField.y, 0.3));
+            labels.push_back(format("%s c=%.2f", p.name.c_str(), p.idConfidence));
+        }
+    }
+    
+}
+
+void detectProcessVisionBox(const vision_interface::msg::Detections &msg, const std::shared_ptr<BrainData> &data){    
+    // auto detection_time_stamp = msg.header.stamp;
+    // rclcpp::Time timePoint(detection_time_stamp.sec, detection_time_stamp.nanosec);
+    auto timePoint = timePointFromHeader(msg.header);
+
+    // 处理并记录视野信息
+    VisionBox vbox;
+    vbox.timePoint = timePoint;
+    for (int i = 0; i < msg.corner_pos.size(); i++) vbox.posToRobot.push_back(msg.corner_pos[i]);
+
+    // 处理左上与右上两点 x 小于 0 , 实际为无限远的场景
+    const double VISION_LIMIT = 20.0;
+    vector<vector<double>> v = {};
+    for (int i = 0; i < 4; i++) {
+        int start = i; int end = (i + 1) % 4;
+        v.push_back({vbox.posToRobot[end * 2] - vbox.posToRobot[start * 2], vbox.posToRobot[end * 2 + 1] - vbox.posToRobot[start * 2 + 1]});
+        v.push_back({-vbox.posToRobot[end * 2] + vbox.posToRobot[start * 2], -vbox.posToRobot[end * 2 + 1] + vbox.posToRobot[start * 2 + 1]});
+    }
+
+    for (int i = 0; i < 2; i++) {
+        double ox = vbox.posToRobot[2* i]; double oy = vbox.posToRobot[2 * i + 1];
+        if (
+            (i == 0 && crossProduct(v[5], v[6]) < 0)
+            || (i == 1 && crossProduct(v[3], v[4]) < 0)
+        ){
+            vbox.posToRobot[2 * i] = -ox / fabs(ox) * VISION_LIMIT;
+            vbox.posToRobot[2 * i + 1] = -oy / fabs(oy) * VISION_LIMIT;
+        }
+    }
+
+    // 转换到 field 坐标系中
+    for (int i = 0; i < 5; i++) {
+        double xr, yr, xf, yf, __;
+        xr = vbox.posToRobot[2 * i];
+        yr = vbox.posToRobot[2 * i + 1];
+        transCoord(
+            xr, yr, 0,
+            data->robotPoseToField.x, data->robotPoseToField.y, data->robotPoseToField.theta,
+            xf, yf, __
+        );
+        vbox.posToField.push_back(xf);
+        vbox.posToField.push_back(yf);
+    }
+    
+    // 一次性将结果赋值到 data 中
+    data->visionBox = vbox;
+}
+
+void detectProcessRobots(const vector<GameObject> &robotObjs, const std::shared_ptr<BrainData> &data) {
+
+    vector<GameObject> robots = {};
+    for (int i = 0; i < robotObjs.size(); i++) {
+        auto rbt = robotObjs[i];
+        if (rbt.confidence < 50) continue;
+        
+        // else
+        robots.push_back(rbt);
+    }
+
+    data->setRobots(robots);
+}
+
 } // namespace detection_utils
