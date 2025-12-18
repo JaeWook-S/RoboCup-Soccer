@@ -32,8 +32,7 @@ void BrainTree::init(){
     initEntry();
 }
 
-void BrainTree::initEntry()
-{
+void BrainTree::initEntry(){
     // 여기서 블랙보드를 초기화하면 됨 
     setEntry<bool>("gamecontroller_isKickOff", true);
     setEntry<string>("gc_game_state", ""); // 현재 ready,set,play,end 중 하나일 것 
@@ -48,9 +47,7 @@ void BrainTree::initEntry()
     // 공 
     setEntry<bool>("ball_location_known", false); // 공 위치를 알고 있는지
     setEntry<bool>("ball_out", false); // 공이 밖으로 나갔는지 확인
+    setEntry<double>("ball_range", 0); // 공과의 거리
 }
 
-void BrainTree::tick()
-{
-    tree.tickOnce();
-}
+void BrainTree::tick(){ tree.tickOnce(); }

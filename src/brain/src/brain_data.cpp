@@ -1,10 +1,7 @@
 #include "brain_data.h"
 #include "utils/math.h"
 
-BrainData::BrainData()
-{
-    std::fill(std::begin(penalty), std::end(penalty), SUBSTITUTE);
-}
+BrainData::BrainData(){ std::fill(std::begin(penalty), std::end(penalty), SUBSTITUTE); }
 
 vector<GameObject> BrainData::getMarkingsByType(set<string> types) {
     if (types.size() == 0) return getMarkings();
@@ -19,12 +16,10 @@ vector<GameObject> BrainData::getMarkingsByType(set<string> types) {
     return res;
 }
 
-vector<FieldMarker> BrainData::getMarkersForLocator()
-{
+vector<FieldMarker> BrainData::getMarkersForLocator(){
     vector<FieldMarker> res;
     auto markings = getMarkings();
-    for (size_t i = 0; i < markings.size(); i++)
-    {
+    for (size_t i = 0; i < markings.size(); i++){
         auto label = markings[i].label;
         auto x = markings[i].posToRobot.x;
         auto y = markings[i].posToRobot.y;
@@ -45,8 +40,7 @@ vector<FieldMarker> BrainData::getMarkersForLocator()
     return res;
 }
 
-Pose2D BrainData::robot2field(const Pose2D &poseToRobot)
-{
+Pose2D BrainData::robot2field(const Pose2D &poseToRobot){
     Pose2D poseToField;
     transCoord(
         poseToRobot.x, poseToRobot.y, poseToRobot.theta,
@@ -56,8 +50,7 @@ Pose2D BrainData::robot2field(const Pose2D &poseToRobot)
     return poseToField;
 }
 
-Pose2D BrainData::field2robot(const Pose2D &poseToField)
-{
+Pose2D BrainData::field2robot(const Pose2D &poseToField){
     Pose2D poseToRobot;
     double xfr, yfr, thetafr; // fr = field to robot
     yfr = sin(robotPoseToField.theta) * robotPoseToField.x - cos(robotPoseToField.theta) * robotPoseToField.y;

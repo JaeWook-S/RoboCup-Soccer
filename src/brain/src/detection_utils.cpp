@@ -527,4 +527,59 @@ void identifyGoalpost(GameObject& goalpost) {
     // TODO 参考 markings, 做更为精细的 goalpostid
 }
 
+
+/* ----------------------------------------- 변수 업데이트를 위한 함수들 ----------------------------------------- */
+
+void updateRelativePos(GameObject &obj, const std::shared_ptr<BrainData> &data, const std::shared_ptr<BrainConfig> &config) {
+    Pose2D pf;
+    pf.x = obj.posToField.x;
+    pf.y = obj.posToField.y;
+    pf.theta = 0;
+    Pose2D pr = data->field2robot(pf);
+    obj.posToRobot.x = pr.x;
+    obj.posToRobot.y = pr.y;
+    obj.range = norm(obj.posToRobot.x, obj.posToRobot.y);
+    obj.yawToRobot = atan2(obj.posToRobot.y, obj.posToRobot.x);
+    obj.pitchToRobot = asin(config->robotHeight / obj.range);
+}
+
+// 공의 위치를 얼마나 많은 시간동안 기억할지 정하는 함수 
+// 팀원 정보를 처리하는 부분 주석 처리됨 -> 나중에 고도화 필요
+void updateBallMemory(const std::shared_ptr<BrainData> &data, const std::shared_ptr<BrainTree> &tree, const std::shared_ptr<BrainLog> &log){
+
+    double secs = msecsSince(data->ball.timePoint) / 1000; 
+    
+    double ballMemTimeout;
+    get_parameter("strategy.ball_memory_timeout", ballMemTimeout);
+
+    // 시간이 지나면 공의 위치를 기억하지 않음
+    if (secs > ballMemTimeout) { 
+        tree->setEntry<bool>("ball_location_known", false);
+        tree->setEntry<bool>("ball_out", false); 
+    }
+
+    updateRelativePos(data->ball, data, config);
+    // updateRelativePos(data->tmBall);
+
+    tree->setEntry<double>("ball_range", data->ball.range);
+
+    // 로그 기록
+    log->setTimeNow();
+    log->logBall(
+        "field/ball", 
+        data->ball.posToField, 
+        data->ballDetected ? 0x00FF00FF : 0x006600FF,
+        data->ballDetected,
+        tree->getEntry<bool>("ball_location_known")
+        );
+    // log->logBall(
+    //     "field/tmBall", 
+    //     data->tmBall.posToField, 
+    //     0xFFFF00FF,
+    //     tree->getEntry<bool>("tm_ball_pos_reliable"),
+    //     tree->getEntry<bool>("tm_ball_pos_reliable")
+    //     );
+}
+
+
 } // namespace detection_utils

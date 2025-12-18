@@ -46,5 +46,9 @@ void detectProcessRobots(const vector<GameObject> &robotObjs, const std::shared_
 void identifyGoalpost(GameObject& goalpost);
 void identifyMarking(GameObject& marking, const std::shared_ptr<BrainConfig> &config);
 
+/* ----------------------------- 변수 업데이트를 위한 함수들 ----------------------------- */
+void updateRelativePos(GameObject &obj, const std::shared_ptr<BrainData> &data, const std::shared_ptr<BrainConfig> &config);
+void updateBallMemory(const std::shared_ptr<BrainData> &data, const std::shared_ptr<BrainTree> &tree, const std::shared_ptr<BrainLog> &log);
+
 
 }

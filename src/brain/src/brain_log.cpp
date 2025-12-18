@@ -4,19 +4,16 @@
 #include "utils/print.h"
 #include "utils/misc.h"
 
-BrainLog::BrainLog(Brain *argBrain) : brain(argBrain), log_tcp("robocup"), log_file("robocup")
-{
+BrainLog::BrainLog(Brain *argBrain) : brain(argBrain), log_tcp("robocup"), log_file("robocup"){
     enable_log_tcp = brain->config->rerunLogEnableTCP;
     enable_log_file = brain->config->rerunLogEnableFile;
-    if (enable_log_tcp)
-    {
+    if (enable_log_tcp){
         rerun::Error err = log_tcp.connect(brain->config->rerunLogServerIP);
         if (err.is_err()) prtErr("Connect rerunLog server failed: " + err.description);
     }
     
 
-    if (enable_log_file)
-    {
+    if (enable_log_file){
         brain->data->timeLastLogSave = brain->get_clock()->now();
         
         auto dir = brain->config->rerunLogLogDir;
@@ -28,30 +25,17 @@ BrainLog::BrainLog(Brain *argBrain) : brain(argBrain), log_tcp("robocup"), log_f
         auto saveError = log_file.save(file_name);
         if (saveError.is_err()) prtErr("Rerun log save Error: " + saveError.description);
     }
+}
+
+void BrainLog::setTimeNow(){ setTimeSeconds(brain->get_clock()->now().seconds()); }
+
+void BrainLog::setTimeSeconds(double seconds){
+    if (brain->config->rerunLogEnableTCP){ log_tcp.set_time_seconds("time", seconds); }
+    if (brain->config->rerunLogEnableFile){ log_file.set_time_seconds("time", seconds); }
 
 }
 
-void BrainLog::setTimeNow()
-{
-    setTimeSeconds(brain->get_clock()->now().seconds());
-}
-
-void BrainLog::setTimeSeconds(double seconds)
-{
-    if (brain->config->rerunLogEnableTCP)
-    {
-        log_tcp.set_time_seconds("time", seconds);
-    }
-
-    if (brain->config->rerunLogEnableFile)
-    {
-        log_file.set_time_seconds("time", seconds);
-    }
-
-}
-
-void BrainLog::logStatics()
-{
+void BrainLog::logStatics(){
     FieldDimensions &fd = brain->config->fieldDimensions;
 
     // draw lines
@@ -66,8 +50,7 @@ void BrainLog::logStatics()
 
     // draw center circle
     vector<rerun::Vec2D> circle = {{fd.circleRadius, 0}};
-    for (int i = 0; i < 360; i++)
-    {
+    for (int i = 0; i < 360; i++){
         double r = fd.circleRadius;
         double theta = (i + 1) * M_PI / 180;
         circle.push_back(rerun::Vec2D{r * cos(theta), r * sin(theta)});
@@ -152,8 +135,7 @@ void BrainLog::logStatics()
     //         .with_draw_order(0.0));
 }
 
-void BrainLog::prepare()
-{
+void BrainLog::prepare(){
     setTimeSeconds(0);
     setTimeNow();
     logStatics();
@@ -167,8 +149,7 @@ void BrainLog::updateLogFilePath() {
     logStatics();
 }
 
-void BrainLog::logToScreen(string logPath, string text, u_int32_t color, double padding)
-{
+void BrainLog::logToScreen(string logPath, string text, u_int32_t color, double padding){
     log(
         logPath,
         rerun::Boxes2D::from_mins_and_sizes({{-padding, -padding}}, {{brain->config->camPixX + 2 * padding, brain->config->camPixY + 3 * padding}})
@@ -186,9 +167,7 @@ rerun::LineStrip2D BrainLog::circle(float x, float y, float r, int nSegs) {
     return rerun::LineStrip2D(res);
 }
 
-rerun::LineStrip2D BrainLog::crosshair(float x, float y, float r) {
-    return rerun::LineStrip2D({{x, y - r}, {x, y + r }, {x - r, y}, {x + r, y}});
-}
+rerun::LineStrip2D BrainLog::crosshair(float x, float y, float r){ return rerun::LineStrip2D({{x, y - r}, {x, y + r }, {x - r, y}, {x + r, y}}); }
 
 void BrainLog::logRobot(string logPath, Pose2D pose, u_int32_t color, string label, bool draw2mCircle) {
     vector<rerun::LineStrip2D> lines = {};

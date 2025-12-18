@@ -127,7 +127,7 @@ NodeStatus CamTrackBall::tick(){
         // 공이 시야 중심에 있다고 판단
         if (std::fabs(deltaX) < pixToleranceX && std::fabs(deltaY) < pixToleranceY){
             auto label = format("ballX: %.1f, ballY: %.1f, deltaX: %.1f, deltaY: %.1f", ballX, ballY, deltaX, deltaY);
-            logTrackingBox(0x00FF00FF, label);
+            logTrackingBox(0x00FF00FF, label); // 초록색 박스로 바뀜
             return NodeStatus::SUCCESS;
         }
 
@@ -138,7 +138,7 @@ NodeStatus CamTrackBall::tick(){
         pitch = brain->data->headPitch + deltaPitch; // 머리의 pitch를 공의 pitch와 더함
         yaw = brain->data->headYaw - deltaYaw; // 머리의 yaw를 공의 yaw와 뺌
         auto label = format("ballX: %.1f, ballY: %.1f, deltaX: %.1f, deltaY: %.1f, pitch: %.1f, yaw: %.1f", ballX, ballY, deltaX, deltaY, pitch, yaw);
-        logTrackingBox(0xFF0000FF, label);
+        logTrackingBox(0xFF0000FF, label);  // 초록색 박스로 바뀜
     }
 
     brain->client->moveHead(pitch, yaw);

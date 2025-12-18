@@ -19,6 +19,7 @@ brain_node:
 
     strategy:
       ball_confidence_threshold: 50.0 
+      ball_memory_timeout: 5.0 # 공의 위치를 얼마나 많은 시간동안 기억할지 정하는 파라미터
 
     locator:
       min_marker_count: 5

@@ -44,6 +44,7 @@ Brain::Brain() : rclcpp::Node("brain_node"){
 
     // 전략 관련 파라미터
     declare_parameter<double>("strategy.ball_confidence_threshold", 50.0);   // 공 인식 신뢰도 임계값
+    declare_parameter<double>("strategy.ball_memory_timeout", 5.0); // 공의 위치를 얼마나 많은 시간동안 기억할지 정하는 파라미터 (공의 위치를 알고있다고 판단하는 시간)
 
     // 카메라 관련 파라미터 
     declare_parameter<string>("vision.image_topic", "/camera/camera/color/image_raw");  // RGB 카메라 이미지 토픽
@@ -204,7 +205,11 @@ void Brain::loadConfig(){
     prtDebug(oss.str());
 }
 
-void Brain::tick(){ tree->tick(); }
+void Brain::tick(){ 
+    detection_utils::updateBallMemory(data, tree, log); // 공 위치 기억 업데이트
+    
+    tree->tick(); 
+}
 
 
 /* ----------------------------- time 관련 함수 유틸 -------------------------------*/
