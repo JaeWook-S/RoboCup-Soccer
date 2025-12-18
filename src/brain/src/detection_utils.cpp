@@ -1,4 +1,5 @@
 #include "detection_utils.h"
+#include "brain_log.h"
 #include "utils/math.h" // norm, transCoord 등
 #include <cmath>
 
