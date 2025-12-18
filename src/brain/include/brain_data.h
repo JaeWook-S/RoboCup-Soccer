@@ -45,6 +45,7 @@ struct BrainData {
 
     GameObject ball;
     bool ballDetected = false; // 공 감지 플래그
+    double robotBallAngleToField;
 
     VisionBox visionBox;  
     

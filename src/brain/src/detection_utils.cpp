@@ -114,7 +114,7 @@ void detectProcessBalls(const std::vector<GameObject> &ballObjs, const std::shar
 }
 
 
-bool isBallOut(double locCompareDist, double lineCompareDist){// 공이 필드 밖으로 나갔는지 판정하는 함수 (좌표 및 필드 라인 기준)
+bool isBallOut(double locCompareDist, double lineCompareDist, const std::shared_ptr<BrainConfig> &config, const std::shared_ptr<BrainData> &data){// 공이 필드 밖으로 나갔는지 판정하는 함수 (좌표 및 필드 라인 기준)
 
     auto ball = data->ball;  // 현재 공 데이터
     auto fd = config->fieldDimensions;  // 필드 치수
@@ -155,7 +155,7 @@ void updateBallOut(const std::shared_ptr<BrainConfig> &config, const std::shared
     threshold *= (lastBallOut ? 1.0 : 1.5);  
 
     // 실제 출계 여부 계산: isBallOut() && 공이 너무 멀지 않음
-    tree->setEntry<bool>("ball_out", isBallOut(config, data, threshold, 10.0) && data->ball.range < range);
+    tree->setEntry<bool>("ball_out", isBallOut(threshold, 10.0, config, data) && data->ball.range < range);
 }
 
 void updateLinePosToField(FieldLine& line, const std::shared_ptr<BrainData> &data) { // 필드 라인의 좌표를 로봇 좌표계에서 필드 좌표계로 변환하는 함수
@@ -307,7 +307,7 @@ void identifyFieldLine(FieldLine& line, const std::shared_ptr<BrainConfig> &conf
     return; // 반환
 }
 
-int markCntOnFieldLine(const string markType, const FieldLine line, const double margin, const std::shared_ptr<BrainData> &data) { // 특정 마킹 종류가 라인 근처에 몇 개 있는지 계산
+int markCntOnFieldLine(const string markType, const FieldLine line, const std::shared_ptr<BrainData> &data, const double margin) { // 특정 마킹 종류가 라인 근처에 몇 개 있는지 계산
     int cnt = 0; // 카운터 초기화
     auto markings = data->getMarkings(); // 현재 감지된 마킹 리스트 가져오기
     for (int i = 0; i < markings.size(); i++) { // 모든 마킹 순회
@@ -322,7 +322,7 @@ int markCntOnFieldLine(const string markType, const FieldLine line, const double
     return cnt; // 결과 반환
 }
 
-int goalpostCntOnFieldLine(const FieldLine line, const double margin, const std::shared_ptr<BrainData> &data) { // 골포스트가 라인 근처에 몇 개 있는지 계산
+int goalpostCntOnFieldLine(const FieldLine line, const std::shared_ptr<BrainData> &data, const double margin) { // 골포스트가 라인 근처에 몇 개 있는지 계산
     int cnt = 0; // 카운터 초기화
     auto goalposts = data->getGoalposts(); // 감지된 골포스트 목록 가져오기
     for (int i = 0; i < goalposts.size(); i++) { // 모든 골포스트 순회
@@ -335,7 +335,7 @@ int goalpostCntOnFieldLine(const FieldLine line, const double margin, const std:
     return cnt; // 결과 반환
 }
 
-bool isBallOnFieldLine(const FieldLine line, const double margin, const std::shared_ptr<BrainData> &data) { // 공이 특정 라인 위에 있는지 판단
+bool isBallOnFieldLine(const FieldLine line, const std::shared_ptr<BrainData> &data, const double margin) { // 공이 특정 라인 위에 있는지 판단
     auto ballPos = data->ball.posToField; // 공의 필드 좌표 가져오기
     Point2D point = {ballPos.x, ballPos.y};  // 2D 포인트로 변환
     return fabs(pointPerpDistToLine(point, line.posToField)) < margin; // 수직 거리가 margin보다 작으면 true

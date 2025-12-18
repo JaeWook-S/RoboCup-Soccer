@@ -22,7 +22,7 @@ std::vector<GameObject> detectionsToGameObjects(const vision_interface::msg::Det
 // 감지된 공 객체들을 처리
 void detectProcessBalls(const std::vector<GameObject> &ballObjs, const std::shared_ptr<BrainConfig> &config, const std::shared_ptr<BrainData> &data, const std::shared_ptr<BrainTree> &tree);
 // 공이 필드 밖으로 나갔는지 판단
-bool isBallOut(double locCompareDist, double lineCompareDist);
+bool isBallOut(double locCompareDist, double lineCompareDist, const std::shared_ptr<BrainConfig> &config, const std::shared_ptr<BrainData> &data);
 void updateBallOut(const std::shared_ptr<BrainConfig> &config, const std::shared_ptr<BrainData> &data, const std::shared_ptr<BrainTree> &tree);
 
 
@@ -32,10 +32,10 @@ void updateLinePosToField(FieldLine& line, const std::shared_ptr<BrainData> &dat
 vector<FieldLine> processFieldLines(vector<FieldLine>& fieldLines, const std::shared_ptr<BrainConfig> &config, const std::shared_ptr<BrainData> &data, const std::shared_ptr<BrainTree> &tree);
 void identifyFieldLine(FieldLine& line, const std::shared_ptr<BrainConfig> &config, const std::shared_ptr<BrainData> &data, const std::shared_ptr<BrainTree> &tree);
 // 마킹 개수 계산
-int markCntOnFieldLine(const string markType, const FieldLine line, const double margin, const std::shared_ptr<BrainData> &data);
+int markCntOnFieldLine(const string markType, const FieldLine line, const std::shared_ptr<BrainData> &data, const double margin=0.2);
 // 골포스트 개수 계산
-int goalpostCntOnFieldLine(const FieldLine line, const double margin, const std::shared_ptr<BrainData> &data);
+int goalpostCntOnFieldLine(const FieldLine line, const std::shared_ptr<BrainData> &data, const double margin=0.2);
 // 공이 특정 라인 위에 있는지 판단
-bool isBallOnFieldLine(const FieldLine line, const double margin, const std::shared_ptr<BrainData> &data);
+bool isBallOnFieldLine(const FieldLine line, const std::shared_ptr<BrainData> &data, const double margin=0.3);
 
 }
