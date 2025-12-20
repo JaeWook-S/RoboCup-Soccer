@@ -39,12 +39,22 @@ Brain::Brain() : rclcpp::Node("brain_node"){
     declare_parameter<double>("robot.vy_limit", 0.4);
     declare_parameter<double>("robot.vtheta_limit", 1.0);
 
+    
+
     declare_parameter<double>("robot.robot_height", 1.0);
     declare_parameter<double>("robot.odom_factor", 1.0);
 
     // 전략 관련 파라미터
     declare_parameter<double>("strategy.ball_confidence_threshold", 50.0);   // 공 인식 신뢰도 임계값
     declare_parameter<double>("strategy.ball_memory_timeout", 5.0); // 공의 위치를 얼마나 많은 시간동안 기억할지 정하는 파라미터 (공의 위치를 알고있다고 판단하는 시간)
+
+    // chase 관련 파라미터
+    declare_parameter<bool>("chase.limit_near_ball_speed", true);
+    declare_parameter<double>("chase.near_ball_speed_limit", 0.3);
+    declare_parameter<double>("chase.near_ball_range", 4.0);
+
+    // occupancy 관련 파라미터
+    declare_parameter<int>("obstacle_avoidance.occupancy_threshold", 5);
 
     // 카메라 관련 파라미터 
     declare_parameter<string>("vision.image_topic", "/camera/camera/color/image_raw");  // RGB 카메라 이미지 토픽
@@ -137,6 +147,14 @@ void Brain::loadConfig(){
 
     // 전략 관련 파라미터 
     get_parameter("strategy.ball_confidence_threshold", config->ballConfidenceThreshold);  // 공 탐지 신뢰도 임계값
+
+    // chase 관련 파라미터
+    get_parameter("chase.limit_near_ball_speed", config->limitNearBallSpeed);
+    get_parameter("chase.near_ball_speed_limit", config->nearBallSpeedLimit);
+    get_parameter("chase.near_ball_range", config->nearBallRange);
+
+    // obstacle 관련 파라미터
+    get_parameter("obstacle_avoidance.collision_threshold", config->collisionThreshold);
 
     // locator 관련 파리미터
     get_parameter("locator.min_marker_count", config->pfMinMarkerCnt);  // 최소 마커 수
@@ -798,4 +816,74 @@ void Brain::logDetection(const vector<GameObject> &gameObjects, bool logBounding
                  .with_radii(radiis)
              // .with_labels(labels)
     );
+}
+
+/*---------------------공통으로 쓰이는 판단 로직 함수 -------------------*/
+double Brain::distToObstacle(double angle) {
+    auto obs = data->getObstacles();
+    double minDist = 1e9;
+    // double obstacleThreshold = static_cast<double>(config->obstacleThreshold);
+    double obstacleThreshold = static_cast<double>(get_parameter("obstacle_avoidance.occupancy_threshold").as_int());
+
+    double collisionThreshold = config->collisionThreshold;
+
+    for (int i = 0; i < obs.size(); i++) {
+        if (obs[i].confidence < obstacleThreshold) continue;
+
+        auto o = obs[i];
+        Line line = {
+            0, 0,
+            cos(angle) * 100, sin(angle) * 100
+        };
+        double perpDist = fabs(pointPerpDistToLine(Point2D{o.posToRobot.x, o.posToRobot.y}, line));
+        if (perpDist < collisionThreshold) {
+            double dist = innerProduct(vector<double>{o.posToRobot.x, o.posToRobot.y}, vector<double>{cos(angle), sin(angle)});
+            if (dist > 0 && dist < minDist) {
+                minDist = dist;
+            }
+        }
+    }
+    return minDist;
+}
+
+vector<double> Brain::findSafeDirections(double startAngle, double safeDist, double step) {
+    double safeAngleLeft = startAngle;
+    double safeAngleRight = startAngle;
+    double leftFound = 0;
+    double rightFound = 0;
+    for (double angle = startAngle; angle < startAngle + M_PI; angle += step) {
+        if (distToObstacle(angle) > safeDist) {
+            safeAngleLeft = angle;
+            leftFound = 1;
+            break;
+        }
+    }
+    for (double angle = startAngle; angle > startAngle - M_PI; angle -= step) {
+        if (distToObstacle(angle) > safeDist) {
+            safeAngleRight = angle;
+            rightFound = 1;
+            break;
+        }
+    }
+
+    return vector<double>{leftFound, toPInPI(safeAngleLeft), rightFound, toPInPI(safeAngleRight)};
+}
+
+double Brain::calcAvoidDir(double startAngle, double safeDist) {
+    auto res = findSafeDirections(startAngle, safeDist);
+    bool leftFound = res[0] > 0.5;
+    bool rightFound = res[2] > 0.5;
+    double angleLeft = res[1];
+    double angleRight = res[3]; 
+    double determinedAngle = 0;
+    if (leftFound && rightFound) {
+        determinedAngle = fabs(angleLeft) < fabs(angleRight) ? angleLeft : angleRight;
+    } else if (leftFound) {
+        determinedAngle = angleLeft;
+    } else if (rightFound) {
+        determinedAngle = angleRight;
+    } else {
+        return 0;
+    }
+    return toPInPI(determinedAngle);
 }

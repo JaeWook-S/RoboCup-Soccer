@@ -20,6 +20,16 @@ brain_node:
     strategy:
       ball_confidence_threshold: 50.0 # 공 인식 신뢰도 임계값
       ball_memory_timeout: 5.0 # 공의 위치를 얼마나 많은 시간동안 기억할지 정하는 파라미터
+      
+    chase:  
+      limit_near_ball_speed: false 
+      near_ball_speed_limit: 0.2 
+      near_ball_range: 3.0
+    
+    obstacle_avoidance:
+      occupancy_threshold: 2000 
+      avoid_during_chase: true 
+      chase_ao_safe_dist: 3.5 
 
     locator:
       min_marker_count: 5 # 로컬라이저 최소 마커 수

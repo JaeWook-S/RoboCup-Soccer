@@ -6,7 +6,7 @@
 class Brain; 
 using namespace BT;
 
-void RegisterDribbleNodes(BT::BehaviorTreeFactory &factory, Brain* brain);
+void RegisterChaseNodes(BT::BehaviorTreeFactory &factory, Brain* brain);
 
 class SimpleChase : public SyncActionNode
 {
@@ -29,3 +29,26 @@ private:
     Brain *brain;
 };
 
+class Chase : public SyncActionNode
+{
+public:
+    Chase(const string &name, const NodeConfig &config, Brain *_brain) : SyncActionNode(name, config), brain(_brain) {}
+
+    static PortsList providedPorts()
+    {
+        return {
+            InputPort<double>("vx_limit", 0.6, "追球的最大 x 速度"),
+            InputPort<double>("vy_limit", 0.4, "追球的最大 y 速度"),
+            InputPort<double>("vtheta_limit", 1.0, "追球时, 实时调整方向的速度不大于这个值"),
+            InputPort<double>("dist", 0.1, "追球的目标是球后面多少距离"),
+            InputPort<double>("safe_dist", 4.0, "circle back 时, 保持的安全距离"),
+        };
+    }
+
+    NodeStatus tick() override;
+
+private:
+    Brain *brain;
+    string _state;     
+    double _dir = 1.0; 
+};

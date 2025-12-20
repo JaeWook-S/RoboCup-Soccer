@@ -40,7 +40,7 @@
 #include "robot_client.h"
 #include "walk.h"
 #include "movehead.h"
-#include "dribble.h"
+#include "chase.h"
 
 using namespace std;
 
@@ -80,7 +80,7 @@ public:
     void registerWalkNodes(BT::BehaviorTreeFactory &factory){RegisterWalkNodes(factory, this);}
     void registerMoveHeadNodes(BT::BehaviorTreeFactory &factory){RegisterMoveHeadNodes(factory, this);}
     void registerLocatorNodes(BT::BehaviorTreeFactory &factory){RegisterLocatorNodes(factory, this);}
-    void registerDribbleNodes(BT::BehaviorTreeFactory &factory){RegisterDribbleNodes(factory, this);}
+    void registerChaseNodes(BT::BehaviorTreeFactory &factory){RegisterChaseNodes(factory, this);}
     
     
     // ROS callback 함수
@@ -96,6 +96,11 @@ public:
 
     /* ----------------------------- 변수 업데이트를 위한 함수들 ----------------------------- */
     void updateRelativePos(GameObject &obj);
+
+    /*------------------------------- 공통으로 쓰이는 판단 로직 함수 ----------------------------------------------*/
+    double distToObstacle(double angle);
+    vector<double> findSafeDirections(double startAngle, double safeDist, double step=deg2rad(10));
+    double calcAvoidDir(double startAngle, double safeDist);
     
 private:
     void loadConfig(); // config 불러오기
