@@ -53,7 +53,7 @@ set(SOURCE_FILES
   src/detection_utils.cpp 
   src/brain_log.cpp
   src/locator.cpp
-  src/dribble.cpp
+  src/chase.cpp
 )
 
 add_executable(brain_node ${SOURCE_FILES})
