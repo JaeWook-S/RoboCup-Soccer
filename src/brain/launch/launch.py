@@ -7,9 +7,10 @@ from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch_ros.actions import Node
 from launch.substitutions import LaunchConfiguration
 
-
+# Python 함수 안에서 context를 사용해 동적으로 설정
 def handle_configuration(context, *args, **kwargs):
-    # 通过 launch 参数 vision_config_path 获取目录（可覆盖）
+
+    # launch 인자 vision_config_path에서 vision 설정 디렉토리를 가져옴
     vision_config_dir = context.perform_substitution(LaunchConfiguration('vision_config_path'))
     vision_config_file = os.path.join(vision_config_dir, 'vision.yaml')
     vision_config_local_file = os.path.join(vision_config_dir, 'vision_local.yaml')
@@ -26,9 +27,12 @@ def handle_configuration(context, *args, **kwargs):
     tree = context.perform_substitution(LaunchConfiguration('tree'))
     tree_path = make_tree_path(tree)
 
-    # 这里的 config 覆盖 config_file 中相同字段(如有) 用于在 launch 时快速指定参数, 而不需要频繁修改 config.yaml
+    # 여기서 정의한 config는 config_file에 같은 항목이 존재하면 그 값을 덮어써서,
+    # launch 실행 시 파라미터를 신속하게 변경할 수 있게 해주며,
+    # 매번 config.yaml 파일을 수정하지 않아도 되도록 설계
+    
     config = {
-            # 加载哪个行为树文件
+            # 로드할 행동 트리 파일 지정
             "tree_file_path": tree_path,
             "vision_config_path": vision_config_file,
             "vision_config_local_path": vision_config_local_file,
@@ -72,7 +76,10 @@ def generate_launch_description():
             default_value=os.path.join(os.path.dirname(__file__), '../../../../vision/share/vision/config'),
             description='Directory containing vision.yaml and vision_local.yaml'
         ),
-        # 需要可以通过 ros2 launch brain launch.py param:=value 形式提供的参数, 需要在这里用 DeclarelaunchArgument 声明, 然后在 handle_configuration 处理
+        # ros2 launch brain launch.py param:=value 형식으로 전달해야 하는 파라미터들은
+        # 여기에서 DeclareLaunchArgument로 선언한 뒤,
+        # handle_configuration 함수에서 처리
+        
         DeclareLaunchArgument(
             'tree', 
             default_value='game.xml',
@@ -81,22 +88,22 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'role', 
             default_value='',
-            description='如果需要覆盖 config.yaml 中的 game.player_role, 可以在 launch 时指定参数 role:=striker'
+            description='// config.yaml의 game.player_role을 덮어쓰려면 launch 시 role:=striker로 지정'
         ),
         DeclareLaunchArgument(
             'sim', 
             default_value='false',
-            description='是否在仿真中'
+            description='시뮬레이션 환경에서 실행 중인지 여부'
         ),
         DeclareLaunchArgument(
             'disable_log', 
             default_value='false',
-            description='强制禁用在文件中记录日志'
+            description='파일 로그 기록을 강제로 비활성화'
         ),
         DeclareLaunchArgument(
             'disable_com', 
             default_value='false',
-            description='强制禁用开启通信'
+            description='통신 기능을 강제로 비활성화'
         ),
-        OpaqueFunction(function=handle_configuration) # 转到 handle_configuration 中继续处理
+        OpaqueFunction(function=handle_configuration) # handle_configuration 함수로 전달하여 추가 설정을 처리
     ])
