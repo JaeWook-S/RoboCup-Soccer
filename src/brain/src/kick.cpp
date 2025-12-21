@@ -11,6 +11,7 @@
 
 void RegisterKickNodes(BT::BehaviorTreeFactory &factory, Brain* brain){
     REGISTER_KICK_BUILDER(CalcKickDir) // obstacle 없이 chase만 
+    REGISTER_KICK_BUILDER(Kick)
 }
 
 // 해당 노드는 반코트용으로 짰음 -> 풀코트 용으로 나중에 수정 필요함 
