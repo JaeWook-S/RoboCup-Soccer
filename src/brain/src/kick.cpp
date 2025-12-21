@@ -134,9 +134,8 @@ NodeStatus Kick::onStart()
     // =========================================================================
     // [추가됨] 1. 블랙보드 신호 확인 (안전장치)
     // =========================================================================
-    bool isReady = false;
     // Chase 노드에서 true로 바꿔주지 않았다면, 킥을 실행하지 않고 실패 처리
-    if (!brain->tree->getEntry("ready_to_kick", isReady) || !isReady) {
+    if (!brain->tree->getEntry("ready_to_kick")) {
         // 아직 준비 안 됨 -> FAILURE 리턴하여 다시 Chase로 돌아가게 함
         return NodeStatus::SUCCESS; 
     }
@@ -219,7 +218,7 @@ NodeStatus Kick::onRunning()
         brain->client->setVelocity(-0.1, 0, 0);
         
         // [추가됨] 중단 시 플래그 초기화
-        brain->blackboard->set("is_ready_to_kick", false);
+        brain->tree->setEntry("ready_to_kick", false);
         
         return NodeStatus::SUCCESS;
     }
