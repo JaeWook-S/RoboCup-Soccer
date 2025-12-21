@@ -156,7 +156,7 @@ NodeStatus Kick::onStart()
     if (
         avoidPushing
         // && (role != "goal_keeper")
-        && brain->data->robotPoseToField.x < brain->config->fieldDimensions.length / 2 - brain->config->fieldDimensions.goalAreaLength
+        && brain->data->robotPoseToField.x > -(brain->config->fieldDimensions.length / 2 - brain->config->fieldDimensions.goalAreaLength) // 음수로 변경
         && brain->distToObstacle(brain->data->ball.yawToRobot) < kickAoSafeDist
     ) {
         brain->client->setVelocity(-0.1, 0, 0);
@@ -213,7 +213,7 @@ NodeStatus Kick::onRunning()
     
     if (
         avoidPushing
-        && brain->data->robotPoseToField.x < brain->config->fieldDimensions.length / 2 - brain->config->fieldDimensions.goalAreaLength
+        && brain->data->robotPoseToField.x > -(brain->config->fieldDimensions.length / 2 - brain->config->fieldDimensions.goalAreaLength)
         && brain->distToObstacle(brain->data->ball.yawToRobot) < kickAoSafeDist
     ) {
         brain->client->setVelocity(-0.1, 0, 0);
