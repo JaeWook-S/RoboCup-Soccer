@@ -24,7 +24,7 @@ brain_node:
     chase:  
       limit_near_ball_speed: true # 가까워질수록 속도를 줄일 지 -> 실제론 다가갈 때도 속도가 줄어들음
       near_ball_speed_limit: 0.2 
-      near_ball_range: 3.0 # 분명 m 기준일텐데 3m면 너무 큰거 아닌가?
+      near_ball_range: 0.5 # 분명 m 기준일텐데 3m면 너무 큰거 아닌가?
     
     obstacle_avoidance:
       occupancy_threshold: 2000 
@@ -38,7 +38,7 @@ brain_node:
     locator:
       min_marker_count: 5 # 로컬라이저 최소 마커 수
       max_residual: 0.35 # 최대 잔차 (오차 허용값)
-      
+
     vision:
       image_topic: "/booster_camera_bridge/StereoNetNode/rectified_image" # d-robotics
       depth_image_topic: "/booster_camera_bridge/StereoNetNode/stereonet_depth" # d-robotics
