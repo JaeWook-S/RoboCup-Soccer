@@ -17,6 +17,43 @@ void RegisterChaseNodes(BT::BehaviorTreeFactory &factory, Brain* brain){
     REGISTER_CHASE_BUILDER(Chase) // obstacle 추가된 chase
 }
 
+// NodeStatus SimpleChase::tick(){
+//     double stopDist, stopAngle, vyLimit, vxLimit;
+//     getInput("stop_dist", stopDist); // 공과의 거리 임계값 -> 멈추기 위해
+//     getInput("stop_angle", stopAngle); // 공과의 각도 임계값 -> 멈추기 위해
+//     getInput("vx_limit", vxLimit); // x축 속도 제한
+//     getInput("vy_limit", vyLimit); // y축 속도 제한
+
+//     // 공의 위치를 모를 때 
+//     if (!brain->tree->getEntry<bool>("ball_location_known")){
+//         brain->client->setVelocity(0, 0, 0);
+//         return NodeStatus::SUCCESS;
+//     }
+
+//     // 로봇 기준 공과의 거리 
+//     // 단순 P 제어
+//     double vx = brain->data->ball.posToRobot.x; // 공과의 x축 거리
+//     double vy = brain->data->ball.posToRobot.y; // 공과의 y축 거리
+//     double vtheta = brain->data->ball.yawToRobot * 4.0; // 공과의 각도
+
+//     // 가까워질수록 속도가 줄어들도록
+//     double linearFactor = 1 / (1 + exp(3 * (brain->data->ball.range * fabs(brain->data->ball.yawToRobot)) - 3)); 
+//     vx *= linearFactor;
+//     vy *= linearFactor;
+
+//     // 속도 제한
+//     vx = cap(vx, vxLimit, -1.0);    
+//     vy = cap(vy, vyLimit, -vyLimit); 
+
+//     if (brain->data->ball.range < stopDist){
+//         vx = 0;
+//         vy = 0;
+//     }
+
+//     brain->client->setVelocity(vx, vy, vtheta, false, false, false);
+//     return NodeStatus::SUCCESS;
+// }
+
 NodeStatus SimpleChase::tick(){
     double stopDist, stopAngle, vyLimit, vxLimit;
     getInput("stop_dist", stopDist); // 공과의 거리 임계값 -> 멈추기 위해
@@ -29,6 +66,9 @@ NodeStatus SimpleChase::tick(){
         brain->client->setVelocity(0, 0, 0);
         return NodeStatus::SUCCESS;
     }
+
+    // 기본적으로 킥 준비 false
+    brain->tree->setEntry("ready_to_kick", false);
 
     // 로봇 기준 공과의 거리 
     // 단순 P 제어
@@ -48,6 +88,9 @@ NodeStatus SimpleChase::tick(){
     if (brain->data->ball.range < stopDist){
         vx = 0;
         vy = 0;
+        if (fabs(brain->data->ball.yawToRobot) < stopAngle){
+            brain->tree->setEntry("ready_to_kick", true);
+        }
     }
 
     brain->client->setVelocity(vx, vy, vtheta, false, false, false);
