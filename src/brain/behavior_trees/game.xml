@@ -40,7 +40,6 @@
 
                         <ReactiveSequence _while="gc_game_state=='SET'" name="Set">
                             <SetVelocity x="0.0" y="0.0" theta="0.0" />
-                            <MoveHead yaw="0.5" pitch="0.0"/>
                             <SubTree ID="Locate" _autoremap="true" />
                         </ReactiveSequence>
 

@@ -141,6 +141,11 @@ NodeStatus Chase::tick(){
         vx *= sigmoid((fabs(vtheta)), 1, 3); 
     }
 
+    // 승재욱 추가 -> 공과의 위치가 5도 이하면 그대로 멈춤
+    if(fabs(vtheta) < 0.09){
+        vtheta = 0;
+    }
+
     vx = cap(vx, vxLimit, -vxLimit);
     vy = cap(vy, vyLimit, -vyLimit);
     vtheta = cap(vtheta, vthetaLimit, -vthetaLimit);
