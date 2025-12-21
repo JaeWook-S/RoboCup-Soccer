@@ -54,129 +54,105 @@ NodeStatus SimpleChase::tick(){
     return NodeStatus::SUCCESS;
 }
 
-// 원본 Chase에 조금 수정함
-// NodeStatus Chase::tick(){
-//     auto log = [=](string msg) {
-//         brain->log->setTimeNow();
-//         brain->log->log("debug/Chase4", rerun::TextLog(msg));
-//     };
-//     log("ticked");
+// 원본 Chase
+NodeStatus Chase::tick()
+{
+    auto log = [=](string msg) {
+        brain->log->setTimeNow();
+        brain->log->log("debug/Chase4", rerun::TextLog(msg));
+    };
+    log("ticked");
     
-//     double vxLimit, vyLimit, vthetaLimit, dist, safeDist;
-//     getInput("vx_limit", vxLimit); // 속도 제한 
-//     getInput("vy_limit", vyLimit);
-//     getInput("vtheta_limit", vthetaLimit);
-//     getInput("dist", dist); // 공과의 거리
-//     getInput("safe_dist", safeDist); // 공과의 안전 거리
+    double vxLimit, vyLimit, vthetaLimit, dist, safeDist;
+    getInput("vx_limit", vxLimit);
+    getInput("vy_limit", vyLimit);
+    getInput("vtheta_limit", vthetaLimit);
+    getInput("dist", dist);
+    getInput("safe_dist", safeDist);
 
-//     bool avoidObstacle;
-//     brain->get_parameter("obstacle_avoidance.avoid_during_chase", avoidObstacle); // 장애물 회피
-//     double oaSafeDist;
-//     brain->get_parameter("obstacle_avoidance.chase_ao_safe_dist", oaSafeDist); 	// 회피 시 최소 안전 거리 oaSafeDist
+    bool avoidObstacle;
+    brain->get_parameter("obstacle_avoidance.avoid_during_chase", avoidObstacle);
+    double oaSafeDist;
+    brain->get_parameter("obstacle_avoidance.chase_ao_safe_dist", oaSafeDist);
 
-//     // 속도 clapping
-//     if (brain->config->limitNearBallSpeed && brain->data->ball.range < brain->config->nearBallRange){
-//         vxLimit = min(brain->config->nearBallSpeedLimit, vxLimit);
-//     }
+    if (
+        brain->config->limitNearBallSpeed
+        && brain->data->ball.range < brain->config->nearBallRange
+    ) {
+        vxLimit = min(brain->config->nearBallSpeedLimit, vxLimit);
+    }
 
-//     double ballRange = brain->data->ball.range;
-//     double ballYaw = brain->data->ball.yawToRobot;
-//     double kickDir = brain->data->kickDir;
-//     // ball → robot 각도 (field)
-//     double theta_br = atan2(
-//         brain->data->robotPoseToField.y - brain->data->ball.posToField.y,
-//         brain->data->robotPoseToField.x - brain->data->ball.posToField.x
-//     );
-//     double theta_rb = brain->data->robotBallAngleToField; // robot → ball 각도
-//     auto ballPos = brain->data->ball.posToField;
-
-
-//     double vx, vy, vtheta;
-//     Pose2D target_f, target_r; 
-//     static string targetType = "direct"; 
-//     static double circleBackDir = 1.0; 
-//     double dirThreshold = M_PI / 2;
-//     if (targetType == "direct") dirThreshold *= 1.2;
+    double ballRange = brain->data->ball.range;
+    double ballYaw = brain->data->ball.yawToRobot;
+    double kickDir = brain->data->kickDir;
+    double theta_br = atan2(
+        brain->data->robotPoseToField.y - brain->data->ball.posToField.y,
+        brain->data->robotPoseToField.x - brain->data->ball.posToField.x
+    );
+    double theta_rb = brain->data->robotBallAngleToField;
+    auto ballPos = brain->data->ball.posToField;
 
 
-//     // 로봇 → 공 방향이 킥 방향과 충분히 유사
-//     if (fabs(toPInPI(kickDir - theta_rb)) < dirThreshold) {
-//         log("targetType = direct");
-//         targetType = "direct";
-//         target_f.x = ballPos.x - dist * cos(kickDir);
-//         target_f.y = ballPos.y - dist * sin(kickDir);
-//     } 
-//     // 로봇 → 공 방향이 킥 방향과 충분히 유사하지 않을 때
-//     // 공을 둘러싸는 원을 그리는 방식 	• 공 주위를 원형으로 돌아서 접근
-//     else {
-//         targetType = "circle_back";
-//         double cbDirThreshold = 0.0; 
-//         cbDirThreshold -= 0.2 * circleBackDir; 
-//         circleBackDir = toPInPI(theta_br - kickDir) > cbDirThreshold ? 1.0 : -1.0;
-//         log(format("targetType = circle_back, circleBackDir = %.1f", circleBackDir));
-//         double tanTheta = theta_br + circleBackDir * acos(min(1.0, safeDist/max(ballRange, 1e-5))); 
-//         target_f.x = ballPos.x + safeDist * cos(tanTheta);
-//         target_f.y = ballPos.y + safeDist * sin(tanTheta);
-//     }
+    double vx, vy, vtheta;
+    Pose2D target_f, target_r; 
+    static string targetType = "direct"; 
+    static double circleBackDir = 1.0; 
+    double dirThreshold = M_PI / 2;
+    if (targetType == "direct") dirThreshold *= 1.2;
 
-//     target_r = brain->data->field2robot(target_f);
-//     brain->log->setTimeNow();
-//     brain->log->logBall("field/chase_target", Point({target_f.x, target_f.y, 0}), 0xFFFFFFFF, false, false);
+
+    // 计算目标点
+    if (fabs(toPInPI(kickDir - theta_rb)) < dirThreshold) {
+        log("targetType = direct");
+        targetType = "direct";
+        target_f.x = ballPos.x - dist * cos(kickDir);
+        target_f.y = ballPos.y - dist * sin(kickDir);
+    } else {
+        targetType = "circle_back";
+        double cbDirThreshold = 0.0; 
+        cbDirThreshold -= 0.2 * circleBackDir; 
+        circleBackDir = toPInPI(theta_br - kickDir) > cbDirThreshold ? 1.0 : -1.0;
+        log(format("targetType = circle_back, circleBackDir = %.1f", circleBackDir));
+        double tanTheta = theta_br + circleBackDir * acos(min(1.0, safeDist/max(ballRange, 1e-5))); 
+        target_f.x = ballPos.x + safeDist * cos(tanTheta);
+        target_f.y = ballPos.y + safeDist * sin(tanTheta);
+    }
+    target_r = brain->data->field2robot(target_f);
+    brain->log->setTimeNow();
+    brain->log->logBall("field/chase_target", Point({target_f.x, target_f.y, 0}), 0xFFFFFFFF, false, false);
             
-//     double targetDir = atan2(target_r.y, target_r.x);
-//     // 승재욱 추가 -> 목표까지의 거리 계산
-//     double distToTarget = norm(target_r.x, target_r.y); // 목표까지의 거리 계산
-//     double distToObstacle = brain->distToObstacle(targetDir);
-//     // 장애물을 회피할 때
-//     if (avoidObstacle && distToObstacle < oaSafeDist) {
-//         log("avoid obstacle");
-//         auto avoidDir = brain->calcAvoidDir(targetDir, oaSafeDist);
-//         const double speed = 0.5;
-//         vx = speed * cos(avoidDir);
-//         vy = speed * sin(avoidDir);
-//         vtheta = ballYaw;
-//     } 
-//     else {
-//         double stopTolerance = 0.1; // 10cm 이내면 도착으로 간주
-        
-//         // (A) 목표 지점 도착 시: 멈추고 공 바라보기
-//         if (distToTarget < stopTolerance) {
-//             vx = 0.0;
-//             vy = 0.0;
-            
-//             // 도착했으면 '목표 방향(targetDir)'이 아니라 '공 방향(ballYaw)'을 봄
-//             // 이유: targetDir은 (0,0) 근처라 값이 매우 불안정함 (특이점 문제)
-//             vtheta = 0.0; 
-//         }
-//         else{
-//             vx = min(vxLimit, brain->data->ball.range);
-//             vy = 0;
-//             vtheta = targetDir;
-//             if (fabs(targetDir) < 0.1 && ballRange > 2.0) vtheta = 0.0;
-//             vx *= sigmoid((fabs(vtheta)), 1, 3); 
-//         }
-//     }
+    double targetDir = atan2(target_r.y, target_r.x);
+    double distToObstacle = brain->distToObstacle(targetDir);
+    if (avoidObstacle && distToObstacle < oaSafeDist) {
+        log("avoid obstacle");
+        auto avoidDir = brain->calcAvoidDir(targetDir, oaSafeDist);
+        const double speed = 0.5;
+        vx = speed * cos(avoidDir);
+        vy = speed * sin(avoidDir);
+        vtheta = ballYaw;
+    } else {
+        vx = min(vxLimit, brain->data->ball.range);
+        vy = 0;
+        vtheta = targetDir;
+        if (fabs(targetDir) < 0.1 && ballRange > 2.0) vtheta = 0.0;
+        vx *= sigmoid((fabs(vtheta)), 1, 3); 
+    }
 
-//     // 승재욱 추가 -> 공과의 위치가 10도 이하면 그대로 멈춤
-//     if(fabs(vtheta) < 0.2){
-//         vtheta = 0;
-//     }
+    vx = cap(vx, vxLimit, -vxLimit);
+    vy = cap(vy, vyLimit, -vyLimit);
+    vtheta = cap(vtheta, vthetaLimit, -vthetaLimit);
 
-//     vx = cap(vx, vxLimit, -vxLimit);
-//     vy = cap(vy, vyLimit, -vyLimit);
-//     vtheta = cap(vtheta, vthetaLimit, -vthetaLimit);
+    static double smoothVx = 0.0;
+    static double smoothVy = 0.0;
+    static double smoothVtheta = 0.0;
+    smoothVx = smoothVx * 0.7 + vx * 0.3;
+    smoothVy = smoothVy * 0.7 + vy * 0.3;
+    smoothVtheta = smoothVtheta * 0.7 + vtheta * 0.3;
 
-//     static double smoothVx = 0.0;
-//     static double smoothVy = 0.0;
-//     static double smoothVtheta = 0.0;
-//     smoothVx = smoothVx * 0.7 + vx * 0.3;
-//     smoothVy = smoothVy * 0.7 + vy * 0.3;
-//     smoothVtheta = smoothVtheta * 0.7 + vtheta * 0.3;
-
-//     // brain->client->setVelocity(smoothVx, smoothVy, smoothVtheta, false, false, false);
-//     brain->client->setVelocity(vx, vy, vtheta, false, false, false);
-//     return NodeStatus::SUCCESS;
-// }
+    // brain->client->setVelocity(smoothVx, smoothVy, smoothVtheta, false, false, false);
+    brain->client->setVelocity(vx, vy, vtheta, false, false, false);
+    return NodeStatus::SUCCESS;
+}
 
 
 // 승재욱 - 직접 만든 Chase

@@ -16,8 +16,7 @@ void RegisterAdjustNodes(BT::BehaviorTreeFactory &factory, Brain* brain){
     REGISTER_ADJUST_BUILDER(Adjust)
 }
 
-NodeStatus Adjust::tick()
-{
+NodeStatus Adjust::tick(){
     auto log = [=](string msg) { 
         brain->log->setTimeNow();
         brain->log->log("debug/adjust5", rerun::TextLog(msg)); 
