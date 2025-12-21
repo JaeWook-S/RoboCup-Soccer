@@ -82,7 +82,7 @@ def generate_launch_description():
         
         DeclareLaunchArgument(
             'tree', 
-            default_value='game.xml',
+            default_value='drible.xml',
             description='Specify behavior tree file name. DO NOT include full path, file should be in src/brain/config/behavior_trees'
         ),
         DeclareLaunchArgument(
