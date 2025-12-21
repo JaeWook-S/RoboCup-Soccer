@@ -33,6 +33,7 @@
 
                         <ReactiveSequence _while="gc_game_state=='READY'" name="Ready">
                             <SubTree ID="CamFindAndTrackBall" _autoremap="true" />
+                            <CalcKickDir />
                             <Chase vx_limit="0.9" vy_limit="0.2" vtheta_limit="1.0" dist="0.3" safe_dist="0.5"/>
                             <SubTree ID="Locate" _autoremap="true" />
                         </ReactiveSequence>
