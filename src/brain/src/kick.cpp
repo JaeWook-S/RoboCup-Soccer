@@ -2,6 +2,8 @@
 #include "brain.h"
 #include "brain_tree.h"
 
+#include <cstdlib>
+#include <ctime>
 
 // BehaviorTree Factory에 Test 노드를 생성하는 함수를 등록하는 역할 -> 코드 양 줄일 수 있음
 #define REGISTER_KICK_BUILDER(Name)     \
