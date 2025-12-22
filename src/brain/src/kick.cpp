@@ -133,6 +133,8 @@ tuple<double, double, double> Kick::_calcSpeed() {
 
 NodeStatus Kick::onStart(){
 
+    if(brain->tree->getEntry<string>("striker_state") != "kick") return NodeStatus::SUCCESS;
+
     _minRange = brain->data->ball.range;
     _speed = 0.5;
     _startTime = brain->get_clock()->now();
@@ -168,6 +170,8 @@ NodeStatus Kick::onRunning(){
         brain->log->log("debug/Kick", rerun::TextLog(msg));
     };
 
+    if(brain->tree->getEntry<string>("striker_state") != "kick") return NodeStatus::SUCCESS;
+
     // [원본 그대로] 킥 중단 조건 (공이 너무 많이 움직였거나 놓쳤을 때)
     bool enableAbort;
     brain->get_parameter("strategy.abort_kick_when_ball_moved", enableAbort);
@@ -183,6 +187,7 @@ NodeStatus Kick::onRunning(){
         )
     ) {
         log("ball moved, abort kick");
+        brain->tree->setEntry("striker_state", "chase");
         
         return NodeStatus::SUCCESS;
     }
@@ -237,5 +242,6 @@ NodeStatus Kick::onRunning(){
 
 void Kick::onHalted(){
     // [원본]
+    brain->tree->setEntry("striker_state", "chase");
     _startTime -= rclcpp::Duration(100, 0);
 }
