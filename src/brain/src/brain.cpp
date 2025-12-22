@@ -59,7 +59,8 @@ Brain::Brain() : rclcpp::Node("brain_node"){
     declare_parameter<double>("obstacle_avoidance.chase_ao_safe_dist", 2.0);
 
     // obstacle 관련 파라미터
-    declare_parameter<int>("obstacle_avoidance.occupancy_threshold", 5);
+    declare_parameter<int>("obstacle_avoidance.occupancy_threshold", 30);
+    declare_parameter<double>("obstacle_avoidance.collision_threshold", 0.4);
     declare_parameter<bool>("obstacle_avoidance.enable_freekick_avoid", false);
     declare_parameter<double>("obstacle_avoidance.obstacle_memory_msecs", 500.0);
 
