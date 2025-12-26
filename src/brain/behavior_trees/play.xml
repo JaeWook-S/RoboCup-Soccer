@@ -1,0 +1,63 @@
+<root BTCPP_format="4">
+    <include path="./subtrees/subtree_cam_find_and_track_ball.xml" />
+    <include path="./subtrees/subtree_locate.xml" />
+    <include path="./subtrees/subtree_striker.xml" />
+    
+    <BehaviorTree ID="MainTree">
+        <Sequence name="root">
+            <RunOnce><Script code="control_state=3" /></RunOnce>
+            
+            <!-- 수동 보조 모드(state=1), 픽업 후 복귀 모드(state=2) 추후 추가 -->
+            
+            <ReactiveSequence _while="control_state==3 && (!go_manual)" name="전략 제어를 위한 상위 스위치 레이어">
+            
+                <SubTree ID="Locate" _autoremap="true" />
+                <ReactiveSequence _while="gc_is_under_penalty" name="현재 페널티 타임 중이거나 교체 상태">
+                    <SetVelocity />
+                    <SubTree ID="CamFindAndTrackBall" _autoremap="true" _while="odom_calibrated" />
+                    <SelfLocateEnterField />
+                </ReactiveSequence>
+
+                <ReactiveSequence _while="!gc_is_under_penalty" name="페널티가 없으며 정상 경기 진행 상태">
+                    <ReactiveSequence _while="gc_game_sub_state_type=='TIMEOUT'" name="경기 일시 중지 상태: 타임아웃 동안 game state는 INITIAL 상태가 됨">
+                        <SetVelocity />
+                        <SubTree ID="CamFindAndTrackBall" _autoremap="true" />
+                        <SelfLocateEnterField />
+                    </ReactiveSequence>
+
+                    <ReactiveSequence _while="gc_game_sub_state_type=='NONE'" name="일반적인 경기 진행 상황">
+                        <ReactiveSequence _while="gc_game_state=='INITIAL'" name="경기장 외 입장 위치에서 대기">
+                            <SubTree ID="CamFindAndTrackBall" _autoremap="true" />
+                            <SelfLocateEnterField />
+                        </ReactiveSequence>
+
+                        <ReactiveSequence _while="gc_game_state=='READY'" name="경기장 안의 자신의 시작 위치로 이동">
+                            <MoveHead pitch="0.35" yaw="0.0" />
+                            <GoToReadyPosition  vx_limit="0.7" /> <!-- TODO: 1-->
+                            <SubTree ID="Locate" _autoremap="true" />
+                        </ReactiveSequence>
+
+                        <ReactiveSequence _while="gc_game_state=='SET'" name="정지 상태로 서서 경기 시작 대기">
+                            <SubTree ID="CamFindAndTrackBall" _autoremap="true" />
+                            <SetVelocity />
+                            <SubTree ID="Locate" _autoremap="true" />
+                        </ReactiveSequence>
+
+                        <ReactiveSequence _while="gc_game_state=='PLAY'" name="경기 진행 중">
+                            <SubTree ID="StrikerPlay" _autoremap="true" _while="player_role == 'striker'" /> <!-- TODO: 2-->
+                            
+                        </ReactiveSequence>
+
+                        <ReactiveSequence _while="gc_game_state=='END'" name="경기 종료">
+                            <SetVelocity />
+                        </ReactiveSequence>
+
+                    </ReactiveSequence>
+
+                    <!-- 프리킥(간접/직접 프리킥) 상황 추후 추가 -->
+
+                </ReactiveSequence>
+            </ReactiveSequence>
+        </Sequence>
+    </BehaviorTree>
+</root>

@@ -45,7 +45,7 @@ void BrainTree::initEntry(){
     setEntry<bool>("gc_is_kickoff_side", false); // 우리 팀 킥오프인지
     setEntry<bool>("gc_is_sub_state_kickoff_side", false);
     setEntry<bool>("gc_is_under_penalty", false);
-    setEntry<int>("control_state", 1); // control_state == 1 이면 단순 걷기로 
+    setEntry<int>("control_state", 3); // control_state == 1 이면 단순 걷기로 (1->3 play.xml test)
 
     // 실제 경기 중 상황 
     // 공 
