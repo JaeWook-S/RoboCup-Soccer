@@ -27,6 +27,7 @@ void BrainTree::init(){
     brain->registerChaseNodes(factory); // chase 관련 노드 등록
     brain->registerKickNodes(factory); // kick 관련 노드 등록
     brain->registerAdjustNodes(factory); // adjust 관련 노드 등록
+    brain->registerDecisionRoleNodes(factory); // decision role 관련 노드 등록
     
     
     factory.registerBehaviorTreeFromFile(brain->config->treeFilePath);
@@ -46,11 +47,15 @@ void BrainTree::initEntry(){
     setEntry<bool>("gc_is_sub_state_kickoff_side", false);
     setEntry<bool>("gc_is_under_penalty", false);
     setEntry<int>("control_state", 3); // control_state == 1 이면 단순 걷기로 (1->3 play.xml test)
+    setEntry<string>("decision", "");
+    setEntry<bool>("wait_for_opponent_kickoff", false);
+
 
     // 실제 경기 중 상황 
     // 공 
+    setEntry<bool>("ball_out", false); // 공이 필드 밖으로 나갔는지  
     setEntry<bool>("ball_location_known", false); // 공 위치를 알고 있는지
-    setEntry<bool>("ball_out", false); // 공이 밖으로 나갔는지 확인
+    setEntry<bool>("tm_ball_pos_reliable", false); // 팀원 공 위치 정보가 신뢰할 만한지 확인
     setEntry<double>("ball_range", 0); // 공과의 거리
 
     //  승재욱 추가 : chase -> adjust -> kick

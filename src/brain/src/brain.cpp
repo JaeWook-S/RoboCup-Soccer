@@ -101,7 +101,7 @@ Brain::Brain() : rclcpp::Node("brain_node"){
 
     // Communication 관련 파라미터
     declare_parameter<bool>("communication.enable", false);
-    
+
     
     // BT
     declare_parameter<string>("tree_file_path", "");
@@ -1367,4 +1367,23 @@ void Brain::logDepth(int grid_x_count, int grid_y_count, vector<vector<int>> &gr
             {{ r, r, h/2}})
         .with_colors(0x00FF0044)     // 半透明绿色 
     );
+}
+
+bool Brain::isAngleGood(double goalPostMargin, string type) {
+    double angle = 0;
+    if (type == "kick") angle = data->robotBallAngleToField; // type=="kick" 机器人到球, field 坐标系中的方向
+    if (type == "shoot") angle = data->robotPoseToField.theta; // type=="shoot" 机器人朝向
+    
+
+    auto goalPostAngles = getGoalPostAngles(goalPostMargin);
+    double theta_l = goalPostAngles[0]; 
+    double theta_r = goalPostAngles[1]; 
+    
+    if (theta_l - theta_r < M_PI / 3 * 2) { 
+        goalPostAngles = getGoalPostAngles(0.5);
+        theta_l = goalPostAngles[0]; 
+        theta_r = goalPostAngles[1]; 
+    }
+
+    return (theta_l > angle && theta_r < angle);
 }
