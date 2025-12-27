@@ -16,6 +16,8 @@ void RegisterMoveHeadNodes(BT::BehaviorTreeFactory &factory, Brain* brain){
     REGISTER_MOVEHEAD_BUILDER(MoveHead) // 속도 제어
     REGISTER_MOVEHEAD_BUILDER(CamFindBall) // 카메라로 공 찾기
     REGISTER_MOVEHEAD_BUILDER(CamTrackBall) // 카메라로 공 추적
+    REGISTER_MOVEHEAD_BUILDER(CamFastScan) // 카메라로 공 찾기
+    REGISTER_MOVEHEAD_BUILDER(TurnOnSpot) // 제자리 회전
     
 }
 
@@ -143,4 +145,69 @@ NodeStatus CamTrackBall::tick(){
 
     brain->client->moveHead(pitch, yaw);
     return NodeStatus::SUCCESS;
+}
+
+NodeStatus CamFastScan::onStart()
+{
+    _cmdIndex = 0;
+    _timeLastCmd = brain->get_clock()->now();
+    brain->client->moveHead(_cmdSequence[_cmdIndex][0], _cmdSequence[_cmdIndex][1]);
+    return NodeStatus::RUNNING;
+}
+
+NodeStatus CamFastScan::onRunning()
+{
+    double interval = getInput<double>("msecs_interval").value();
+    if (brain->msecsSince(_timeLastCmd) < interval) return NodeStatus::RUNNING;
+
+    // else 
+    if (_cmdIndex >= 7) return NodeStatus::SUCCESS; // 6->7 수정
+
+    // else
+    _cmdIndex++;
+    _timeLastCmd = brain->get_clock()->now();
+    brain->client->moveHead(_cmdSequence[_cmdIndex][0], _cmdSequence[_cmdIndex][1]);
+    return NodeStatus::RUNNING;
+}
+
+NodeStatus TurnOnSpot::onStart()
+{
+    _timeStart = brain->get_clock()->now();
+    _lastAngle = brain->data->robotPoseToOdom.theta;
+    _cumAngle = 0.0;
+
+    bool towardsBall = false;
+    _angle = getInput<double>("rad").value();
+    getInput("towards_ball", towardsBall);
+    if (towardsBall) {
+        double ballPixX = (brain->data->ball.boundingBox.xmin + brain->data->ball.boundingBox.xmax) / 2;
+        _angle = fabs(_angle) * (ballPixX < brain->config->camPixX / 2 ? 1 : -1);
+    }
+
+    brain->client->setVelocity(0, 0, _angle, false, false, true);
+    return NodeStatus::RUNNING;
+}
+
+NodeStatus TurnOnSpot::onRunning()
+{
+    double curAngle = brain->data->robotPoseToOdom.theta;
+    double deltaAngle = toPInPI(curAngle - _lastAngle);
+    _lastAngle = curAngle;
+    _cumAngle += deltaAngle;
+    double turnTime = brain->msecsSince(_timeStart);
+    // brain->log->log("debug/turn_on_spot", rerun::TextLog(format(
+    //     "angle: %.2f, cumAngle: %.2f, deltaAngle: %.2f, time: %.2f",
+    //     _angle, _cumAngle, deltaAngle, turnTime
+    // )));
+    if (
+        fabs(_cumAngle) - fabs(_angle) > -0.1
+        || turnTime > _msecLimit
+    ) {
+        brain->client->setVelocity(0, 0, 0);
+        return NodeStatus::SUCCESS;
+    }
+
+    // else 
+    brain->client->setVelocity(0, 0, (_angle - _cumAngle)*2, false, false, true); // 인자 추가
+    return NodeStatus::RUNNING;
 }

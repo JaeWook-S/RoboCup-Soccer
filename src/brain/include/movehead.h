@@ -57,3 +57,64 @@ public:
 private:
     Brain *brain;
 };
+
+class CamFastScan : public StatefulActionNode
+{
+public:
+    CamFastScan(const string &name, const NodeConfig &config, Brain *_brain) : StatefulActionNode(name, config), brain(_brain) {}
+
+    static PortsList providedPorts()
+    {
+        return {
+            InputPort<double>("msecs_interval", 300, "같은 위치에 머무르는 시간(밀리초)"),
+        };
+    }
+
+    NodeStatus onStart() override;
+
+    NodeStatus onRunning() override;
+
+    void onHalted() override {};
+
+private:
+    double _cmdSequence[7][2] = {
+        {0.45, 1.1},
+        {0.45, 0.0},
+        {0.45, -1.1},
+        {1.0, -1.1},
+        {1.0, 0.0},
+        {1.0, 1.1},
+        {0.45, 0.0},
+    };    
+    rclcpp::Time _timeLastCmd;    
+    int _cmdIndex = 0;               
+    Brain *brain;
+};
+
+class TurnOnSpot : public StatefulActionNode
+{
+public:
+    TurnOnSpot(const string &name, const NodeConfig &config, Brain *_brain) : StatefulActionNode(name, config), brain(_brain) {}
+
+    static PortsList providedPorts()
+    {
+        return {
+            InputPort<double>("rad", 0, "회전할 각도, 왼쪽으로 회전할 때는 양수"),
+            InputPort<bool>("towards_ball", false, "true일 때, rad의 부호를 무시하고 마지막에 볼을 보았던 방향으로 회전")
+        };
+    }
+
+    NodeStatus onStart() override;
+
+    NodeStatus onRunning() override;
+
+    void onHalted() override {};
+
+private:
+    double _lastAngle; 
+    double _angle;
+    double _cumAngle; 
+    double _msecLimit = 5000;  
+    rclcpp::Time _timeStart;
+    Brain *brain;
+};
