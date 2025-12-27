@@ -508,10 +508,10 @@ void BrainCommunication::spinCommunicationReceiver() {
             continue;
         }
 
-        if (brain->data->penalty[tmIdx] == SUBSTITUTE) { 
-            cout << YELLOW_CODE << format("Communication playerId %d is substitute", msg.playerId) << RESET_CODE << endl;
-            continue;
-        }
+        // if (brain->data->penalty[tmIdx] == SUBSTITUTE) { 
+        //     cout << YELLOW_CODE << format("Communication playerId %d is substitute", msg.playerId) << RESET_CODE << endl;
+        //     continue;
+        // }
 
         log(format("TMID: %.d, alive: %d, lead: %d, cost: %.1f, CmdId: %d, Cmd: %d", msg.playerId, msg.isAlive, msg.isLead, msg.cost, msg.cmdId, msg.cmd));
 
