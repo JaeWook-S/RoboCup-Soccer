@@ -2,7 +2,7 @@
     <!-- Include Subtrees -->
     <include path="./subtrees/cam_find_and_track_ball.xml" />
     <include path="./subtrees/locate.xml" />
-    <include path="./subtrees/striker_enhanced.xml" />
+    <include path="./subtrees/striker.xml" />
     <!-- TODO: Goalie, Defender Subtrees Include -->
 
     <BehaviorTree ID="MainTree">
