@@ -512,30 +512,48 @@ void BrainCommunication::spinCommunicationReceiver() {
             continue;
         }
 
+        // 교체 선수(Substitute) 체크 로직
+        // 실제 경기에서는 교체 선수의 정보가 전술에 방해가 되므로 무시하지만,
+        // 현재 테스트 중에는 GameController 설정 없이도 통신을 확인하기 위해 주석 처리함.
         // if (brain->data->penalty[tmIdx] == SUBSTITUTE) { 
         //     cout << YELLOW_CODE << format("Communication playerId %d is substitute", msg.playerId) << RESET_CODE << endl;
         //     continue;
         // }
 
-        log(format("TMID: %.d, alive: %d, lead: %d, cost: %.1f, CmdId: %d, Cmd: %d", msg.playerId, msg.isAlive, msg.isLead, msg.cost, msg.cmdId, msg.cmd));
+        /* ---------------- 로그 출력 (디버깅용) ---------------- */
+        // TMID: 팀원 ID
+        // MyPos: 나의 필드 좌표 (x, y)
+        // TmPos: 팀원이 보내준 팀원의 필드 좌표 (x, y)
+        // Dist: 나와 팀원 사이의 거리 (이 값이 3.0m 이내면 Rerun에서 Teammate로 표시됨)
+        double dist = sqrt(pow(brain->data->robotPoseToField.x - msg.robotPoseToField.x, 2) + pow(brain->data->robotPoseToField.y - msg.robotPoseToField.y, 2));
+        cout << GREEN_CODE << format(
+            "TMID: %d | MyPos: (%.2f, %.2f) | TmPos: (%.2f, %.2f) | Dist: %.2f", 
+            msg.playerId, 
+            brain->data->robotPoseToField.x, brain->data->robotPoseToField.y,
+            msg.robotPoseToField.x, msg.robotPoseToField.y,
+            dist
+            ) << RESET_CODE << endl;
 
+        /* ---------------- 데이터 업데이트 ---------------- */
+        // 수신된 패킷 내용을 BrainData의 tmStatus에 저장합니다.
+        // 이 데이터는 전략(누가 공을 찰지)과 시각화(Rerun에서 Teammate 표시)에 사용됩니다.
         TMStatus &tmStatus = brain->data->tmStatus[tmIdx];
         
-        tmStatus.role = msg.playerRole == 1 ? "striker" : "goal_keeper";
-        tmStatus.isAlive = msg.isAlive;
-        tmStatus.ballDetected = msg.ballDetected;
-        tmStatus.ballLocationKnown = msg.ballLocationKnown;
-        tmStatus.ballConfidence = msg.ballConfidence;
-        tmStatus.ballRange = msg.ballRange;
-        tmStatus.cost = msg.cost;
-        tmStatus.isLead = msg.isLead;
-        tmStatus.ballPosToField = msg.ballPosToField;
-        tmStatus.robotPoseToField = msg.robotPoseToField;
-        tmStatus.kickDir = msg.kickDir;
-        tmStatus.thetaRb = msg.thetaRb;
-        tmStatus.timeLastCom = brain->get_clock()->now();
-        tmStatus.cmd = msg.cmd;
-        tmStatus.cmdId = msg.cmdId;
+        tmStatus.role = msg.playerRole == 1 ? "striker" : "goal_keeper"; // 역할
+        tmStatus.isAlive = msg.isAlive; // 생존 여부
+        tmStatus.ballDetected = msg.ballDetected; // 공 감지 여부
+        tmStatus.ballLocationKnown = msg.ballLocationKnown; // 공 위치 파악 여부
+        tmStatus.ballConfidence = msg.ballConfidence; // 공 신뢰도
+        tmStatus.ballRange = msg.ballRange; // 공과의 거리
+        tmStatus.cost = msg.cost; // 비용(전술용)
+        tmStatus.isLead = msg.isLead; // 리더 여부
+        tmStatus.ballPosToField = msg.ballPosToField; // 공의 필드 좌표
+        tmStatus.robotPoseToField = msg.robotPoseToField; // 로봇의 필드 좌표
+        tmStatus.kickDir = msg.kickDir; // 킥 방향
+        tmStatus.thetaRb = msg.thetaRb; // 로봇 헤딩
+        tmStatus.timeLastCom = brain->get_clock()->now(); // 마지막 통신 시간 갱신
+        tmStatus.cmd = msg.cmd; // 명령
+        tmStatus.cmdId = msg.cmdId; // 명령 ID
 
         // 检查是否收到了新的指令
         if (msg.cmdId > brain->data->tmCmdId) {
