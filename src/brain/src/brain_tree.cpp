@@ -48,7 +48,7 @@ void BrainTree::initEntry(){
     setEntry<bool>("gc_is_under_penalty", false);
     setEntry<int>("control_state", 3); // control_state == 1 이면 단순 걷기로 (1->3 play.xml test)
     
-    setEntry<string>("decision", "");
+    setEntry<string>("decision", ""); // pass / chase / adjust / kick / assist 더 추가 예정
     setEntry<bool>("wait_for_opponent_kickoff", false);
     setEntry<string>("player_role", "striker"); // play.xml (striker / defender / goal_keeper)
 
