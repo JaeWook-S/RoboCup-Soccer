@@ -43,8 +43,9 @@ NodeStatus Adjust::tick(){
     double NO_TURN_THRESHOLD, TURN_FIRST_THRESHOLD;
     getInput("no_turn_threshold", NO_TURN_THRESHOLD);
     getInput("turn_first_threshold", TURN_FIRST_THRESHOLD);
-    double yaw_offset;
+    double yaw_offset, main_offset;
     getInput("yaw_offset", yaw_offset);
+    getInput("main_offset", main_offset)
 
     double vx = 0, vy = 0, vtheta = 0;
     double kickDir = brain->data->kickDir;
@@ -94,7 +95,7 @@ NodeStatus Adjust::tick(){
     brain->client->setVelocity(vx, vy, vtheta);
 
     // 승재욱 추가
-    bool adjustDone = fabs(deltaDir) <= 0.2 && fabs(ballYaw) <= 0.1 + yaw_offset && ballRange < range + 0.1;
+    bool adjustDone = fabs(deltaDir) <= 0.1 + main_offset && fabs(ballYaw) <= 0.1 + yaw_offset && ballRange < range + 0.1;
     if (adjustDone){
         brain->tree->setEntry("striker_state", "kick");
         log("adjust -> kick (ready)");
