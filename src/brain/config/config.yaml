@@ -33,7 +33,7 @@ brain_node:
       occupancy_threshold: 30 # 2000은 너무 높아서 수정 (sample_step 16일 때 약 952포인트 최대)
       collision_threshold: 0.4 # 충돌 회피 거리 임계값 (로봇 반경 고려) 
       # 밑에 2개 변수를 chase에 뺄지 고민중 
-      avoid_during_chase: true # chase 중에 장애물을 회피할 지 여부
+      avoid_during_chase: false # chase 중에 장애물을 회피할 지 여부
       chase_ao_safe_dist: 3.5 # chase 중 장애물을 회피할 때 최소 안전 거리
 
       # 킥에 사용
