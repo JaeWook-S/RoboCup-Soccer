@@ -28,6 +28,7 @@ public:
             InputPort<double>("near_threshold", 0.8, "목표와의 거리가 이 값보다 작으면 near speed를 사용한다"),
             InputPort<double>("no_turn_threshold", 0.1, "각도 오차가 이 값보다 작으면 회전을 수행하지 않는다"),
             InputPort<double>("turn_first_threshold", 0.5, "각도 오차가 이 값보다 크면 이동하지 않고 회전만 먼저 수행한다"),
+            InputPort<double>("yaw_offset", 0.13),
         };        
     }
 

@@ -29,6 +29,7 @@
                         
                         <ReactiveSequence _while="gc_game_state=='INITIAL'" name="Initial">
                             <SetVelocity x="0.0" y="0.0" theta="0.0" />
+                            
                             <SubTree ID="CamFindAndTrackBall" _autoremap="true" />
                             <SelfLocateEnterField />
                         </ReactiveSequence>
@@ -37,11 +38,11 @@
                             <SubTree ID="CamFindAndTrackBall" _autoremap="true" /> 
                             <CalcKickDir />
                             <ReactiveSequence>
-                                <SubTree ID="Striker" _autoremap="true" _while="player_role == 'striker'" />
+                                <!-- <SubTree ID="Striker" _autoremap="true" _while="player_role == 'striker'" /> -->
                                 
-                                <!-- <Chase vx_limit="0.9" vy_limit="0.2" vtheta_limit="1.0" dist="0.3" safe_dist="0.5"/>
-                                <Adjust turn_threshold="0.1" range="0.4" vx_limit="0.7" vy_limit="0.6" vtheta_limit="1.5" vtheta_factor="1.5" tangential_speed_far="0.7" tangential_speed_near="0.15" />
-                                <Kick speed_limit="0.3" min_msec_kick="1000" msecs_stablize="1000"/> -->
+                                <Chase vx_limit="0.9" vy_limit="0.2" vtheta_limit="1.0" dist="0.3" safe_dist="0.5"/>
+                                <Adjust turn_threshold="0.1" range="0.4" vx_limit="0.7" vy_limit="0.6" vtheta_limit="1.5" vtheta_factor="1.5" tangential_speed_far="0.7" tangential_speed_near="0.15" yaw_offset="0.13"/>
+                                <Kick speed_limit="0.8" min_msec_kick="1000" msecs_stablize="1000"/>
                             </ReactiveSequence>
                             <SubTree ID="Locate" _autoremap="true" />
                         </ReactiveSequence>

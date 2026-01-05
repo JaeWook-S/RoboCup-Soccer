@@ -27,7 +27,7 @@ NodeStatus Adjust::tick(){
         return NodeStatus::SUCCESS;
     }
     // 승재욱 추가
-    // if (brain->tree->getEntry<string>("striker_state") != "adjust") return NodeStatus::SUCCESS;
+    if (brain->tree->getEntry<string>("striker_state") != "adjust") return NodeStatus::SUCCESS;
 
     double turnThreshold, vxLimit, vyLimit, vthetaLimit, range, st_far, st_near, vtheta_factor, NEAR_THRESHOLD;
     getInput("near_threshold", NEAR_THRESHOLD);
@@ -43,7 +43,8 @@ NodeStatus Adjust::tick(){
     double NO_TURN_THRESHOLD, TURN_FIRST_THRESHOLD;
     getInput("no_turn_threshold", NO_TURN_THRESHOLD);
     getInput("turn_first_threshold", TURN_FIRST_THRESHOLD);
-
+    double yaw_offset;
+    getInput("yaw_offset", yaw_offset);
 
     double vx = 0, vy = 0, vtheta = 0;
     double kickDir = brain->data->kickDir;
@@ -93,9 +94,9 @@ NodeStatus Adjust::tick(){
     brain->client->setVelocity(vx, vy, vtheta);
 
     // 승재욱 추가
-    bool adjustDone = fabs(deltaDir) <= 0.1 && fabs(ballYaw) <= 0.1 && ballRange < range + 0.1;
+    bool adjustDone = fabs(deltaDir) <= 0.1 && fabs(ballYaw) <= 0.1 + yaw_offset && ballRange < range + 0.1;
     if (adjustDone){
-        // brain->tree->setEntry("striker_state", "kick");
+        brain->tree->setEntry("striker_state", "kick");
         log("adjust -> kick (ready)");
     }
     log(format("deltaDir = %.1f", deltaDir));
