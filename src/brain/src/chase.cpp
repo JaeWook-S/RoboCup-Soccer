@@ -54,7 +54,7 @@ NodeStatus SimpleChase::tick(){
     return NodeStatus::SUCCESS;
 }
 
-// 원본 Chase
+// // 원본 Chase
 NodeStatus Chase::tick(){
     auto log = [=](string msg) {
         brain->log->setTimeNow();
@@ -170,195 +170,258 @@ NodeStatus Chase::tick(){
 }
 
 
-// // 승재욱 - 직접 만든 Chase
-// NodeStatus Chase::tick(){
+// Chase.cpp (or wherever your BT node is implemented)
+// 목표: target_f 계산 로직은 그대로 유지하면서,
+//      1) robotPoseToField.theta 가 kickDir 와 정렬되도록 vtheta를 P제어
+//      2) target_r.y(측면 오차)를 이용해 vy도 사용
+//      3) 헤딩 정렬이 안 되면(vtheta 오차가 크면) vx/vy를 자동으로 줄여 안정성 확보
+
+// NodeStatus Chase::tick() {
+//     // -----------------------------
+//     // Logging helper
+//     // -----------------------------
 //     auto log = [=](string msg) {
 //         brain->log->setTimeNow();
 //         brain->log->log("debug/Chase4", rerun::TextLog(msg));
 //     };
 //     log("ticked");
-    
-//     // [입력 변수 가져오기]
+
+//     // -----------------------------
+//     // State guard: striker_state != chase 면 바로 성공 반환(아무것도 안 함)
+//     // -----------------------------
+//     if (brain->tree->getEntry<string>("striker_state") != "chase") {
+//         return NodeStatus::SUCCESS;
+//     }
+
+//     // -----------------------------
+//     // BT input ports
+//     // -----------------------------
 //     double vxLimit, vyLimit, vthetaLimit, dist, safeDist;
-//     getInput("vx_limit", vxLimit); 
-//     getInput("vy_limit", vyLimit);
-//     getInput("vtheta_limit", vthetaLimit);
-//     getInput("dist", dist);          // 목표: 공 뒤쪽 거리 (예: 30cm)
-//     getInput("safe_dist", safeDist); // 회전 접근 시 안전 거리
+//     getInput("vx_limit", vxLimit);           // 최대 전진 속도 제한
+//     getInput("vy_limit", vyLimit);           // 최대 측면 속도 제한
+//     getInput("vtheta_limit", vthetaLimit);   // 최대 회전 속도 제한
+//     getInput("dist", dist);                  // 공 뒤에서 유지하고 싶은 거리(=target_f 오프셋)
+//     getInput("safe_dist", safeDist);         // (circle_back에서 쓰던) 안전거리
 
-//     // 승재욱 추가 -> 킥 준비 false로 초기화
-//     brain->tree->setEntry("ready_to_kick", false);
-    
-//     // [장애물 회피 파라미터]
-//     bool avoidObstacle;
-//     brain->get_parameter("obstacle_avoidance.avoid_during_chase", avoidObstacle); 
-//     double oaSafeDist;
-//     brain->get_parameter("obstacle_avoidance.chase_ao_safe_dist", oaSafeDist); 
+//     // -----------------------------
+//     // Obstacle avoidance params
+//     // -----------------------------
+//     bool avoidObstacle = false;
+//     brain->get_parameter("obstacle_avoidance.avoid_during_chase", avoidObstacle);
 
-//     // [속도 제한 (공 근처 감속)]
-//     if ( brain->config->limitNearBallSpeed && brain->data->ball.range < brain->config->nearBallRange){
+//     double oaSafeDist = 0.0;
+//     brain->get_parameter("obstacle_avoidance.chase_ao_safe_dist", oaSafeDist);
+
+//     // -----------------------------
+//     // Near-ball speed limiting (기존 유지)
+//     // -----------------------------
+//     if (brain->config->limitNearBallSpeed &&
+//         brain->data->ball.range < brain->config->nearBallRange) {
 //         vxLimit = min(brain->config->nearBallSpeedLimit, vxLimit);
 //     }
 
-//     // [데이터 가져오기]
-//     double ballRange = brain->data->ball.range;
-//     double ballYaw = brain->data->ball.yawToRobot;
-//     auto ballPos = brain->data->ball.posToField;
-    
-//     // *중요: kickDir은 CalcKickDir에서 절대좌표로 계산된 값을 쓰는 것이 가장 좋습니다.
-//     double kickDir = brain->data->kickDir; 
-    
-//     double theta_rb = brain->data->robotBallAngleToField; // 로봇 -> 공 각도
-//     double theta_br = atan2( // 공 -> 로봇 각도
-//         brain->data->robotPoseToField.y - ballPos.y,
-//         brain->data->robotPoseToField.x - ballPos.x
+//     // -----------------------------
+//     // Read perception / strategy data
+//     // -----------------------------
+//     const double ballRange = brain->data->ball.range;
+//     const double ballYaw   = brain->data->ball.yawToRobot;          // 로봇 기준 공의 yaw
+//     const double kickDir   = brain->data->kickDir;                  // 필드 기준 "킥 방향"
+//     const double theta_rb  = brain->data->robotBallAngleToField;    // 필드 기준 "로봇->공" 방향(혹은 공 기준?)
+//     const auto   ballPos   = brain->data->ball.posToField;          // 필드 기준 공 위치
+
+//     // 로봇-공 관계 각도(필드 기준): ball -> robot 방향
+//     const double theta_br = atan2(
+//         brain->data->robotPoseToField.y - brain->data->ball.posToField.y,
+//         brain->data->robotPoseToField.x - brain->data->ball.posToField.x
 //     );
 
-//     // =========================================================================
-//     // [1. 상태 관리 & 히스테리시스 (State Machine & Hysteresis)]
-//     // =========================================================================
-    
-//     // 상태를 기억하기 위한 static 변수들
-//     static string targetType = "circle_back"; // 초기값
-//     static double lockedCircleDir = 1.0;      // 회전 방향 기억 (1.0 or -1.0)
-//     static double lockedKickDir = 0.0;        // Direct 모드용 킥 방향 기억
-//     static bool isTargetLocked = false;       // 타겟 락 여부
+//     // -----------------------------
+//     // Output velocities to send
+//     // -----------------------------
+//     double vx, vy, vtheta;
 
-//     // 기준 임계값
-//     double baseThreshold = M_PI / 2; // 90도
-    
-//     // 히스테리시스 임계값 설정 (들어갈 땐 빡빡하게, 나올 땐 널널하게)
-//     double enterDirectThresh = baseThreshold;       // 예: 90도 이내면 Direct 진입
-//     double exitDirectThresh  = baseThreshold + 0.3; // 예: 108도 벗어나야 CircleBack 복귀 (여유폭 0.3 rad)
-
-//     double angleDiff = fabs(toPInPI(kickDir - theta_rb));
-
-//     // [상태 전환 로직]
-//     if (targetType == "direct") {
-//         log("targetType = direct");
-//         // Direct 상태 유지 중: 오차가 exitThreshold를 넘어야만 상태 변경
-//         if (angleDiff > exitDirectThresh) {
-//             targetType = "circle_back";
-//             isTargetLocked = false; // 락 해제
-//             log("State Changed: Direct -> CircleBack");
-            
-//             // CircleBack 진입 시 회전 방향 결정 (여기서 딱 한 번만 정함!)
-//             double cbDirThreshold = -0.2 * lockedCircleDir; 
-//             lockedCircleDir = toPInPI(theta_br - kickDir) > cbDirThreshold ? 1.0 : -1.0;
-//         }
-//     } 
-//     else { // targetType == "circle_back"
-//         // CircleBack 상태 유지 중: 오차가 enterThreshold보다 작아지면 상태 변경
-//         if (angleDiff < enterDirectThresh) {
-//             targetType = "direct";
-//             log("State Changed: CircleBack -> Direct");
-            
-//             // Direct 진입 시 현재 킥 방향을 기억(Lock)함
-//             lockedKickDir = kickDir; 
-//             isTargetLocked = true;
-//         }
-//     }
-
-//     // =========================================================================
-//     // [2. 목표 지점(Target) 계산]
-//     // =========================================================================
+//     // -----------------------------
+//     // Target point calculation ( 여기까지는 "그대로 유지" 요청 반영)
+//     // -----------------------------
 //     Pose2D target_f, target_r;
 
-//     if (targetType == "direct") {
-//         // [Direct 모드]
-//         // 킥 방향이 미세하게 흔들려도 무시하고, 기억해둔 'lockedKickDir'를 사용
-//         // 단, 공이 굴러갈 수 있으니 'ballPos'는 계속 최신값 반영
-//         if (!isTargetLocked) { 
-//             lockedKickDir = kickDir; 
-//             isTargetLocked = true; 
-//         }
+//     static string targetType = "direct";
+//     static double circleBackDir = 1.0;  // (현재 circle_back 주석이라 실사용 X)
+//     double dirThreshold = M_PI / 2;
+//     if (targetType == "direct") dirThreshold *= 1.2;
 
-//         target_f.x = ballPos.x - dist * cos(lockedKickDir);
-//         target_f.y = ballPos.y - dist * sin(lockedKickDir);
-//     } 
+//     // 기존 로직: kickDir 과 theta_rb 차이가 작으면 "direct"로 공 뒤 타겟을 잡는다
+//     if (fabs(toPInPI(kickDir - theta_rb)) < dirThreshold) {
+//         log("targetType = direct");
+//         targetType = "direct";
+
+//         // 공 위치에서 kickDir 반대 방향으로 dist만큼 떨어진 점 = 공 뒤쪽
+//         target_f.x = ballPos.x - dist * cos(kickDir);
+//         target_f.y = ballPos.y - dist * sin(kickDir);
+//     }
+//     // circle_back 부분은 그대로 주석 유지 (원하면 나중에 다시 살릴 수 있음)
+//     /*
 //     else {
-//         // [Circle Back 모드]
-//         // 회전 방향(lockedCircleDir)을 사용하므로 좌우로 튀지 않음
-//         double tanTheta = theta_br + lockedCircleDir * acos(min(1.0, safeDist/max(ballRange, 1e-5))); 
+//         targetType = "circle_back";
+//         double cbDirThreshold = 0.0;
+//         cbDirThreshold -= 0.2 * circleBackDir;
+//         circleBackDir = toPInPI(theta_br - kickDir) > cbDirThreshold ? 1.0 : -1.0;
+//         log(format("targetType = circle_back, circleBackDir = %.1f", circleBackDir));
+//         double tanTheta = theta_br + circleBackDir * acos(min(1.0, safeDist/max(ballRange, 1e-5)));
 //         target_f.x = ballPos.x + safeDist * cos(tanTheta);
 //         target_f.y = ballPos.y + safeDist * sin(tanTheta);
 //     }
+//     */
 
-//     // 로봇 기준 좌표로 변환
+//     // 필드 -> 로봇 좌표로 타겟 변환
 //     target_r = brain->data->field2robot(target_f);
-    
-//     // 디버그 로그 (Rerun)
+
+//     // Rerun debug: chase target 표시(필드 좌표)
 //     brain->log->setTimeNow();
-//     brain->log->logBall("field/chase_target", Point({target_f.x, target_f.y, 0}), 0xFFFFFFFF, false, false);
+//     brain->log->logBall(
+//         "field/chase_target",
+//         Point({target_f.x, target_f.y, 0}),
+//         0xFFFFFFFF,
+//         false,
+//         false
+//     );
 
-//     // =========================================================================
-//     // [3. 이동 명령 생성 (Movement Generation)]
-//     // =========================================================================
-    
-//     double vx, vy, vtheta;
-//     double targetDir = atan2(target_r.y, target_r.x);
-//     double distToTarget = norm(target_r.x, target_r.y); // 목표까지 남은 거리
-//     double distToObstacle = brain->distToObstacle(targetDir);
+//     // -----------------------------
+//     // Useful derived values
+//     // -----------------------------
+//     // 로봇 좌표계에서 타겟이 있는 방향(로봇 기준 각도)
+//     const double targetDir = atan2(target_r.y, target_r.x);
 
-//     // (A) 장애물 회피
+//     // 장애물까지 거리(로봇 기준 targetDir 방향 레이캐스팅 같은 것)
+//     const double distToObstacle = brain->distToObstacle(targetDir);
+
+//     // -----------------------------
+//     // (A) Obstacle avoidance 우선 처리
+//     // -----------------------------
 //     if (avoidObstacle && distToObstacle < oaSafeDist) {
-//         log("Avoiding Obstacle");
-//         auto avoidDir = brain->calcAvoidDir(targetDir, oaSafeDist);
-//         const double speed = 0.5;
-//         vx = speed * cos(avoidDir);
-//         vy = speed * sin(avoidDir);
-//         vtheta = ballYaw;
-//     } 
-//     // (B) 일반 주행
-//     else {
-//         double stopTolerance = 0.1; // 10cm 이내 도착 판정
-        
-//         // [도착 처리] 목표 지점에 거의 다 왔으면
-//         if (distToTarget < stopTolerance) {
-//             vx = 0.0;
-//             vy = 0.0;
-            
-//             // 도착했으면 이동 방향(targetDir)이 아니라, 공 방향(ballYaw)을 바라봄
-//             // 이미 lockedKickDir로 정렬해서 들어왔으므로 ballYaw를 보면 킥 각이 나옴
-//             vtheta = ballYaw; 
-//             // 각도 오차가 5도(약 0.09 rad) 이내면 회전 모터를 끔 -> 제자리 떨림 방지 핵심
-//             if (fabs(vtheta) < 0.2) {
-//                 vtheta = 0.0;
-//                 // 승재욱 추가 -> 킥 준비
-//                 brain->tree->setEntry("ready_to_kick", true);
-//             }
-//         }
-//         // [이동 처리] 아직 가는 중이면
-//         else {
-//             // 거리에 비례하여 속도 조절 (도착지점에서 부드럽게 감속)
-//             vx = min(vxLimit, distToTarget); 
-//             vy = 0;
-//             vtheta = targetDir;
+//         log("avoid obstacle");
 
-//             // 먼 거리 직진 보정
-//             if (fabs(targetDir) < 0.1 && ballRange > 2.0) vtheta = 0.0;
-            
-//             // 회전 시 전진 감속 (커브 돌 때 속도 줄임)
-//             vx *= sigmoid((fabs(vtheta)), 1, 3); 
+//         // 회피 방향 계산 (로봇 기준 각도 반환 가정)
+//         const double avoidDir = brain->calcAvoidDir(targetDir, oaSafeDist);
+
+//         // 회피할 땐 간단히 일정 속도로 피한다(기존 유지)
+//         const double speed = 0.5;
+//         vx     = speed * cos(avoidDir);
+//         vy     = speed * sin(avoidDir);
+
+//         // 회피 중에도 공을 정면으로 두려는 보정 (기존 코드에서는 vtheta=ballYaw)
+//         // ballYaw는 로봇 기준 공 방향이므로, vtheta에 그대로 넣으면 "공 바라보기" 회전이 됨
+//         vtheta = ballYaw;
+
+//         log(format("avoidDir = %.2f", avoidDir));
+//     }
+//     // -----------------------------
+//     // (B) Normal chase: ✅ 여기서 P제어 + vy 사용
+//     // -----------------------------
+//     else {
+//         // =============================
+//         // 1) 헤딩(로봇 θ) 을 kickDir 로 정렬시키는 P 제어
+//         // =============================
+//         const double robotTheta_f = brain->data->robotPoseToField.theta; // 필드 기준 로봇 헤딩
+//         const double thetaErr     = toPInPI(kickDir - robotTheta_f);     // "원하는 헤딩 - 현재 헤딩"
+
+//         // =============================
+//         // 2) 타겟까지 로봇좌표 오차(target_r)로 vx/vy 제어
+//         //    target_r.x: 전방 오차(+면 앞으로 가야 함)
+//         //    target_r.y: 측방 오차(+면 왼쪽/오른쪽은 좌표 정의에 따라 다름)
+//         // =============================
+
+//         // ---- P gains (튜닝 포인트) ----
+//         // 휴머노이드에서 너무 큰 게인은 흔들림/넘어짐 유발 가능 -> 보수적으로 시작
+//         const double Kp_x     = 0.8;  // 전진
+//         const double Kp_y     = 1.0;  // 측면
+//         const double Kp_theta = 1.5;  // 헤딩 정렬
+
+//         // P 제어 입력(원시값)
+//         vx     = Kp_x * target_r.x;
+//         vy     = Kp_y * target_r.y;
+//         vtheta = Kp_theta * thetaErr;
+
+//         // =============================
+//         // 3) 정렬이 안 됐으면(각도 오차 크면) 이동을 줄여 안정성 확보
+//         //    - "몸이 돌아가는 중에 크게 전진/측면 이동"을 줄여서 발/상체 안정
+//         // =============================
+//         // sigmoid(|thetaErr|)가 0~1 스케일을 준다고 가정(기존 코드와 동일 사용)
+//         //  - |thetaErr|가 크면 scale이 작아져 vx/vy가 줄어듦
+//         const double headingScale = sigmoid(fabs(thetaErr), 1.0, 3.0);
+//         vx *= headingScale;
+//         vy *= headingScale;
+
+//         // =============================
+//         // 4) 추가 안정화 규칙 (선택)
+//         //    멀리 있고 각도 오차도 작으면 vtheta 굳이 주지 않기(흔들림 감소)
+//         // =============================
+//         if (ballRange > 2.0 && fabs(thetaErr) < 0.1) {
+//             vtheta = 0.0;
 //         }
+
+//         // (선택) 너무 가까울 때 vx를 줄여서 과속 접근 방지
+//         // if (ballRange < 0.6) vx *= 0.7;
+
+//         // 디버깅 로그
+//         log(format("thetaErr=%.3f rad, target_r=(%.2f, %.2f), headingScale=%.2f",
+//                    thetaErr, target_r.x, target_r.y, headingScale));
 //     }
 
-//     // =========================================================================
-//     // [4. 안정화: 데드존 (Deadzone)]
-//     // =========================================================================
-    
-//     // // 각도 오차가 5도(약 0.09 rad) 이내면 회전 모터를 끔 -> 제자리 떨림 방지 핵심
-//     // if (fabs(vtheta) < 0.2) {
-//     //     vtheta = 0.0;
-//     // }
-
-//     // [5. 리미트 적용]
-//     vx = cap(vx, vxLimit, -vxLimit);
-//     vy = cap(vy, vyLimit, -vyLimit);
+//     // -----------------------------
+//     // Apply limits (saturation)
+//     // -----------------------------
+//     vx     = cap(vx,     vxLimit,     -vxLimit);
+//     vy     = cap(vy,     vyLimit,     -vyLimit);
 //     vtheta = cap(vtheta, vthetaLimit, -vthetaLimit);
 
-//     // [6. 명령 전송 (스무딩 없이 즉시 반응)]
+//     // -----------------------------
+//     // (Optional) smoothing
+//     // - 기존 코드에 smoothing 변수가 있었지만 실제 setVelocity에는 raw vx/vy/vtheta를 쓰고 있었음
+//     // - 필요하면 아래 smooth 값을 보내도록 변경 가능
+//     // -----------------------------
+//     static double smoothVx = 0.0;
+//     static double smoothVy = 0.0;
+//     static double smoothVtheta = 0.0;
+//     smoothVx     = smoothVx * 0.7 + vx     * 0.3;
+//     smoothVy     = smoothVy * 0.7 + vy     * 0.3;
+//     smoothVtheta = smoothVtheta * 0.7 + vtheta * 0.3;
+
+//     // -----------------------------
+//     // Chase 종료 조건
+//     // 기존: ball.range < dist*1.2 AND |kickDir - theta_rb| < 60deg
+//     // 개선: 이제 "로봇 헤딩(robotTheta)과 kickDir 정렬"이 핵심이므로 thetaErr 기준이 더 직접적
+//     // -----------------------------
+//     {
+//         const double robotTheta_f = brain->data->robotPoseToField.theta;
+//         const double thetaErr     = toPInPI(kickDir - robotTheta_f);
+
+//         // dist*1.2: 타겟 거리(공 뒤 dist) 근처로 도달했는지
+//         const bool closeEnough = (ballRange < dist * 1.2);
+
+//         // kickDir 정렬 정도 (0.2 rad ≈ 11.5도)
+//         const bool headingAligned = (fabs(thetaErr) < 0.2);
+
+//         // 필요하면 기존 조건(theta_rb)도 함께 AND/OR로 섞을 수 있음
+//         // const bool rbAligned = fabs(toPInPI(kickDir - theta_rb)) < M_PI/3;
+
+//         const bool chaseDone = closeEnough && headingAligned;
+
+//         if (chaseDone) {
+//             brain->tree->setEntry("striker_state", "adjust");
+//             log("chase -> adjust");
+//         }
+
+//         log(format("distToObstacle=%.2f, targetDir=%.2f, closeEnough=%d, headingAligned=%d",
+//                    distToObstacle, targetDir, (int)closeEnough, (int)headingAligned));
+//     }
+
+//     // -----------------------------
+//     // Send velocity
+//     // 기본은 raw 출력. 흔들림 있으면 smoothing 사용 권장.
+//     // -----------------------------
+//     // brain->client->setVelocity(smoothVx, smoothVy, smoothVtheta, false, false, false);
 //     brain->client->setVelocity(vx, vy, vtheta, false, false, false);
-    
+
 //     return NodeStatus::SUCCESS;
 // }
