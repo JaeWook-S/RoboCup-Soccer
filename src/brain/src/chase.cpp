@@ -71,6 +71,10 @@ NodeStatus Chase::tick(){
     getInput("dist", dist);
     getInput("safe_dist", safeDist);
 
+    // 승재욱 추가
+    double kp_yaw_chase;
+    getInput("kp_yaw_chase", kp_yaw_chase);
+    
     bool avoidObstacle;
     brain->get_parameter("obstacle_avoidance.avoid_during_chase", avoidObstacle);
     double oaSafeDist;
@@ -93,6 +97,10 @@ NodeStatus Chase::tick(){
     );
     double theta_rb = brain->data->robotBallAngleToField;
     auto ballPos = brain->data->ball.posToField;
+
+    // 승재욱 추가
+    double robotYaw = brain->data->robotYawToField;  // localization yaw
+    double yawError = toPInPI(kickDir - robotYaw);
 
 
     double vx, vy, vtheta;
@@ -141,6 +149,8 @@ NodeStatus Chase::tick(){
         vx = min(vxLimit, brain->data->ball.range);
         vy = 0;
         vtheta = targetDir;
+       // 승재욱 추가 p 제어
+        vtheta = vtheta + kp_yaw_chase * yawError;
         if (fabs(targetDir) < 0.1 && ballRange > 2.0) vtheta = 0.0;
         vx *= sigmoid((fabs(vtheta)), 1, 3); 
     }
@@ -157,7 +167,7 @@ NodeStatus Chase::tick(){
     smoothVtheta = smoothVtheta * 0.7 + vtheta * 0.3;
 
     // chase 멈춤 조건
-    bool chaseDone = brain->data->ball.range < dist * 1.2 && fabs(toPInPI(kickDir - theta_rb)) < M_PI / 3;
+    bool chaseDone = brain->data->ball.range < dist * 1.2 && yawError < M_PI / 12; // 3->12로 수정 약 15도
     if (chaseDone){
         brain->tree->setEntry("striker_state", "adjust");
         log("chase -> adjust");

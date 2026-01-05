@@ -42,6 +42,7 @@ public:
             InputPort<double>("vtheta_limit", 1.0, "追球时, 实时调整方向的速度不大于这个值"),
             InputPort<double>("dist", 0.1, "追球的目标是球后面多少距离"),
             InputPort<double>("safe_dist", 4.0, "circle back 时, 保持的安全距离"),
+            InputPort<double>("kp_yaw_chase", 0.4, "dir align yaw"),
         };
     }
 
