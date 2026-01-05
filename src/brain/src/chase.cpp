@@ -74,7 +74,7 @@ NodeStatus Chase::tick(){
     // 승재욱 추가
     double kp_yaw_chase;
     getInput("kp_yaw_chase", kp_yaw_chase);
-    
+
     bool avoidObstacle;
     brain->get_parameter("obstacle_avoidance.avoid_during_chase", avoidObstacle);
     double oaSafeDist;
@@ -99,7 +99,7 @@ NodeStatus Chase::tick(){
     auto ballPos = brain->data->ball.posToField;
 
     // 승재욱 추가
-    double robotYaw = brain->data->robotYawToField;  // localization yaw
+    double robotYaw = brain->data->robotPoseToField.theta;  // localization yaw
     double yawError = toPInPI(kickDir - robotYaw);
 
 
