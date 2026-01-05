@@ -45,7 +45,7 @@ NodeStatus Adjust::tick(){
     getInput("turn_first_threshold", TURN_FIRST_THRESHOLD);
     double yaw_offset, main_offset;
     getInput("yaw_offset", yaw_offset);
-    getInput("main_offset", main_offset)
+    getInput("main_offset", main_offset);
 
     double vx = 0, vy = 0, vtheta = 0;
     double kickDir = brain->data->kickDir;
