@@ -61,9 +61,9 @@ int RobotClient::waveHand(bool doWaveHand)
 
 int RobotClient::setVelocity(double x, double y, double theta, bool applyMinX, bool applyMinY, bool applyMinTheta)
 {
-    //brain->log->setTimeNow();
-    //brain->log->log("RobotClient/setVelocity_in",
-    //                rerun::TextLog(format("vx: %.2f  vy: %.2f  vtheta: %.2f", x, y, theta)));
+    brain->log->setTimeNow();
+    brain->log->log("RobotClient/setVelocity_in",
+                   rerun::TextLog(format("vx: %.2f  vy: %.2f  vtheta: %.2f", x, y, theta)));
 
     // 速度指令太小时, 给一个最小速度, 以防止不响应 TODO 转为参数化
     double minx = 0.05, miny = 0.08, mintheta = 0.05;
@@ -123,8 +123,10 @@ int RobotClient::setVelocity(double x, double y, double theta, bool applyMinX, b
     _vx = x; _vy = y; _vtheta = theta; // 마지막으로 보낸 명령을 기억한다. 현재 로봇의 속도로 근사해서 사용할 수 있다.
     _lastCmdTime = brain->get_clock()->now();
     if (fabs(_vx) > 1e-3 || fabs(_vy) > 1e-3 || fabs(_vtheta) > 1e-3) _lastNonZeroCmdTime = brain->get_clock()->now();
-    //brain->log->log("RobotClient/setVelocity_out",
-    //    rerun::TextLog(format("vx: %.2f  vy: %.2f  vtheta: %.2f", x, y, theta)));
+    brain->log->log("RobotClient/setVelocity_out",
+       rerun::TextLog(format("vx: %.2f  vy: %.2f  vtheta: %.2f", x, y, theta)));
+
+
     return call(booster_interface::CreateMoveMsg(x, y, theta));
 }
 
